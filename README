@@ -1,8 +1,9 @@
-EActiveResource is an extension for the Yii PHP framework allowing the user to create models that use RESTful services as persistent storage. The implementation is
-inspired by Yii's CActiveRecord class (http://www.yiiframework.com/doc/api/1.1/CActiveRecord/) and the Ruby on Rails implementation of ActiveResource (http://api.rubyonrails.org/classes/ActiveResource/Base.html).
-Despite the RESTful approach this class by default is completely schemaless meaning that you can assign any attribute on the fly. Because of that you can't use
+EActiveResource is an extension for the Yii PHP framework allowing the user to create models that use RESTful services as persistent storage.
+The implementation is inspired by Yii's CActiveRecord class (http://www.yiiframework.com/doc/api/1.1/CActiveRecord/) and the Ruby on Rails implementation of ActiveResource (http://api.rubyonrails.org/classes/ActiveResource/Base.html).
+
+ATTENTION: This class by default is completely schemaless meaning that you can assign any attribute on the fly. Because of that you can't use any magic SETTERS like
 $model->attributes=array('name'=>'Haensel') as this would add an attribute called attributes to the model. Always use the corresponding methods (like setAttributes()) to also
-make ue of Yii's validation
+make use of Yii's validation
 
 Installing:
 
