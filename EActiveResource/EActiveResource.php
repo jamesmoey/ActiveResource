@@ -1180,7 +1180,7 @@ abstract class EActiveResource extends CModel
 
 
         if($data)
-            Yii::trace('Sending '.$method.' request to '.$uri.' with content-type:'.$this->getContentType().', accept-type: '.$this->getAcceptType().' and data: '.$data,'ext.EActiveResource');
+            Yii::trace('Sending '.$method.' request to '.$uri.' with content-type:'.$this->getContentType().', accept: '.$this->getAcceptType().' and data: '.$data.' with '.$headers[0],'ext.EActiveResource');
         else
             Yii::trace('Sending '.$method.' request to '.$uri.' without data, accepting: '.$this->getAcceptType(),'ext.EActiveResource');
 

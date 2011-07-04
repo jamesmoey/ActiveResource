@@ -163,14 +163,11 @@ class EActiveResourceRequest
                     throw new EActiveResourceRequestException(Yii::t('EActiveResourceRequest', 'No uri set') );
 
                 $this->ch = curl_init();
-
-                //filter null values;
-                if(is_array($data))
-                    $data=array_filter($data);
-
+                
                 $this->setOption(CURLOPT_URL,$this->uri);
                 $this->setOption(CURLOPT_CUSTOMREQUEST,$method);
                 $this->setOption(CURLOPT_HTTPHEADER,$headers);
+
 
                 switch($method)
                 {
@@ -179,8 +176,10 @@ class EActiveResourceRequest
                         //If you want to PUT a string and not an array (like you would with POST)
                         //you have to use a "fake" file with the string as content
                         //If using an array you can use PUT as you would with POST
-                        if(isset($data) && !is_array($data))
+                        if(isset($data))
                         {
+                            /*
+                            //throw new CException($data);
                             // Clean up string
                             $putString = stripslashes($data);
                             // Put string into a temporary file
@@ -196,10 +195,9 @@ class EActiveResourceRequest
                             $this->setOption(CURLOPT_INFILE, $putData);
                             $this->setOption(CURLOPT_INFILESIZE, strlen($putString));
                             break;
-                        }
-                        elseif(isset($data) && is_array($data))
-                        {
-                            $this->setOption(CURLOPT_POSTFIELDS, $data);
+                             *
+                             */
+                            curl_setopt($this->ch, CURLOPT_POSTFIELDS, $data);
                         }
                     case self::METHOD_POST:
                         $this->setOption(CURLOPT_POSTFIELDS, $data);
@@ -227,7 +225,7 @@ class EActiveResourceRequest
 
                 $response = curl_exec($this->ch);
 
-                if($response)
+                if(curl_errno($this->ch)==0)
                 {
                     return $response;
                 }
