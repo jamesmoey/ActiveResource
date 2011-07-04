@@ -1,0 +1,96 @@
+EActiveResource is an extension for the Yii PHP framework allowing the user to create models that use RESTful services as persistent storage. The implementation is
+inspired by Yii's CActiveRecord class (http://www.yiiframework.com/doc/api/1.1/CActiveRecord/) and the Ruby on Rails implementation of ActiveResource (http://api.rubyonrails.org/classes/ActiveResource/Base.html).
+Despite the RESTful approach this class by default is completely schemaless meaning that you can assign any attribute on the fly. Because of that you can't use
+$model->attributes=array('name'=>'Haensel') as this would add an attribute called attributes to the model. Always use the corresponding methods (like setAttributes()) to also
+make ue of Yii's validation
+
+Installing:
+
+1.) Add the extension to Yii by placing it in your application's extension folder (for example '/protected/ext')
+2.) Edit your applications main.php config file and add 'application.ext.EActiveResource.*' to your import definitions
+3.) Now create a class extending EActiveResource like this:
+
+<?php
+class Person extends EActiveResource
+{
+
+    public static function model($className=__CLASS__)
+    {
+        return parent::model($className);
+    }
+
+    public function Configuration()
+    {
+        return array(
+            'site'=>'http://api.aRESTservice.com/',
+            'resource'=>'people',
+            'contenttype'=>'application/json',
+            'accepttype'=>'application/json',
+            'fileextension'=>'.json',
+        );
+    }
+    
+}
+?>
+
+4.) Now you should be able to communicate with the service like this:
+
+$person=Person::model()->findById(1); //sends GET 'http://api.aRESTservice.com/people/1.json'
+$person->name='Haensel'; //dynamically sets an attribute. No 'safe' rule is needed. If you want to set attributes according to your rules() array (like you would with CActiveResource) use $person->setAttributes(array('name'=>'Haensel'))
+$person->save(); //Updates the resource because it is obvisiouly not a new resource (found by a Finder method) => PUT request to http://api.aRESTservice.com/people/1 with data '{'name':'Haensel'}'
+
+//creating a new Person
+
+$person = new Person; //no request
+$person->name='Haensel'; //no request
+$person->gender='m'; //no request
+$person->save(); // POST request to http://api.aRESTservice.com/people with data '{'name';'Haensel','gender':'m'}'
+
+//using validation rules
+
+add the rules() function to your model
+
+<?php
+class Person extends EActiveResource
+{
+
+    public static function model($className=__CLASS__)
+    {
+        return parent::model($className);
+    }
+    
+    public function rules()
+    {
+    	return array(
+    		array('name','required');
+    		array('gender','numerical');
+    	);
+    }
+
+    public function Configuration()
+    {
+        return array(
+            'site'=>'http://api.aRESTservice.com/',
+            'resource'=>'people',
+            'contenttype'=>'application/json',
+            'accepttype'=>'application/json',
+            'fileextension'=>'.json',
+        );
+    }
+    
+}
+?>
+
+$person=new Person;
+$person->setAttributes(array(
+	'name'=>'Haensel',
+	'gender'=>'m'
+));
+$person->save(); //validation fails, no POST request is sent to the database. You can get the error messages like you would with CActiveRecord (which uses the CModel methods getErrors()).
+
+$person=new Person;
+$person->setAttributes(array(
+	'name'=>'Haensel',
+	'gender'=>1
+));
+$person->save(); // VALIDATED. Sending POST request to http://api.aRESTservice.com/people with data '{'name':'Haensel','gender':1}'
