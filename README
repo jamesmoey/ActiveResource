@@ -7,8 +7,8 @@ $model->attributes=array('name'=>'Haensel') as this would add an attribute calle
 Always use the corresponding methods (like setAttributes()).
 
 2.) The only validation rule that is ignored when setting a dynamic attribute is the 'safe' rule. So setting $model->someAttribute='TEST' will set the
-attribute even if 'someAttribute' wasn't explicitly set to being 'safe'. This means that $model->save() will POST the model to the service.
-If you use other rules like 'required' then validation is performed as usual.
+attribute even if 'someAttribute' wasn't explicitly set to being 'safe'. This means that $model->save() will POST the model to the service because the model validates.
+If you use other rules like 'required' then validation is performed as usual and validation will fail if these restrictions are not met.
 
 HINT:
 As there are thousands of different REST services out there that use different thousand different approaches it can be tricky to debug erros. Because of that I added extensive
