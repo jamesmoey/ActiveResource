@@ -32,7 +32,7 @@ class EActiveResourceMetaData
         $this->_model=$model;
 
         $this->schema=null;
-        foreach($model->Configuration() as $option=>$value)
+        foreach($model->rest() as $option=>$value)
                 if(property_exists($this, $option))
                         $this->$option=$value;
 

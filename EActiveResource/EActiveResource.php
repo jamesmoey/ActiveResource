@@ -89,7 +89,7 @@ abstract class EActiveResource extends CModel
      * This will cause the class to automatically load the User object/objects. It enables you to use magic getters like: $tweet->user->name where tweet is your main model object and user is a ActiveResource contained within a tweet response.
      * @return array The configuration of this classed as used by EActiveResourceMetaData.
      */
-    public function Configuration()
+    public function rest()
     {
         return array(
             'site'=>'http://localhost:port',
