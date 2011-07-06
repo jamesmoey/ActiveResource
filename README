@@ -21,7 +21,9 @@ INSTALL:
 2.) Edit your applications main.php config file and add 'application.extensions.EActiveResource.*' to your import definitions
 3.) Now create a class extending EActiveResource like this (don't forget the model() function!):
 
-<?php
+QUICK OVERVIEW:
+
+<php
 class Person extends EActiveResource
 {
 
@@ -30,7 +32,7 @@ class Person extends EActiveResource
         return parent::model($className);
     }
 
-    public function Configuration()
+    public function rest()
     {
         return array(
             'site'=>'http://api.aRESTservice.com',
@@ -43,8 +45,6 @@ class Person extends EActiveResource
     
 }
 ?>
-
-4.) Now you should be able to communicate with the service like this:
 
 $person=Person::model()->findById(1); //sends GET 'http://api.aRESTservice.com/people/1.json'
 $person->name='Haensel'; //dynamically sets an attribute. No 'safe' rule is needed. If you want to set attributes according to your rules() array (like you would with CActiveResource) use $person->setAttributes(array('name'=>'Haensel'))
@@ -78,7 +78,7 @@ class Person extends EActiveResource
     	);
     }
 
-    public function Configuration()
+    public function rest()
     {
         return array(
             'site'=>'http://api.aRESTservice.com',
