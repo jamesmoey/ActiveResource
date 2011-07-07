@@ -4,9 +4,5 @@
  * @version 0.1
  */
 
-/**
- * A custom Exception for ActiveResource
- */
-class EActiveResourceRequestException extends CException{}
-
+class EActiveResourceRequestException extends EActiveResourceException{}
 ?>

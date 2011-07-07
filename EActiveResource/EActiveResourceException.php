@@ -8,5 +8,3 @@
  * A custom Exception for ActiveResource
  */
 class EActiveResourceException extends CException{}
-
-?>

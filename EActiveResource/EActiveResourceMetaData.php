@@ -24,6 +24,9 @@ class EActiveResourceMetaData
     public $contenttype;
     public $accepttype;
 
+    public $username;
+    public $password;
+
 
     private $_model;
 

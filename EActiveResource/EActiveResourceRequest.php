@@ -149,7 +149,7 @@ class EActiveResourceRequest
             isset($this->options['setOptions'][CURLOPT_HEADER]) ? $this->setOption(CURLOPT_HEADER,$this->options['setOptions'][CURLOPT_HEADER]) : $this->setOption(CURLOPT_HEADER,FALSE);
             isset($this->options['setOptions'][CURLOPT_RETURNTRANSFER]) ? $this->setOption(CURLOPT_RETURNTRANSFER,$this->options['setOptions'][CURLOPT_RETURNTRANSFER]) : $this->setOption(CURLOPT_RETURNTRANSFER,TRUE);
 	    isset($this->options['setOptions'][CURLOPT_FOLLOWLOCATION]) ? $this->setOption(CURLOPT_FOLLOWLOCATIO,$this->options['setOptions'][CURLOPT_FOLLOWLOCATION]) : $this->setOption(CURLOPT_FOLLOWLOCATION,TRUE);
-            isset($this->options['setOptions'][CURLOPT_FAILONERROR]) ? $this->setOption(CURLOPT_FAILONERROR,$this->options['setOptions'][CURLOPT_FAILONERROR]) : $this->setOption(CURLOPT_FAILONERROR,TRUE);
+            isset($this->options['setOptions'][CURLOPT_FAILONERROR]) ? $this->setOption(CURLOPT_FAILONERROR,$this->options['setOptions'][CURLOPT_FAILONERROR]) : $this->setOption(CURLOPT_FAILONERROR,FALSE);
         }
 
 	/*
@@ -224,19 +224,46 @@ class EActiveResourceRequest
 		}
 
                 $response = curl_exec($this->ch);
+                $responseInfo=curl_getinfo($this->ch);
+                $responseUri=$responseInfo['url'];
+                $responseCode=$responseInfo['http_code'];
 
-                if(curl_errno($this->ch)==0)
-                {
+                if($responseCode<400)
                     return $response;
-                }
                 else
                 {
-                    $error_code=curl_errno($this->ch);
-                    $error=curl_error($this->ch);
-                    throw new EActiveResourceRequestException($error,$error_code);
+                    $errorMessage="The requested uri: $responseUri returned an error with status code $responseCode
 
+                    ".$response;
+
+                    switch ($responseCode)
+                    {
+                        case 400:
+                            throw new EActiveResourceRequestBadRequestException($errorMessage, $responseCode);
+                        case 401:
+                            throw new EActiveResourceRequestUnauthorizedAccessException($errorMessage, $responseCode);
+
+                            
+                        case 403:
+                            throw new EActiveResourceRequestForbiddenException($errorMessage, $responseCode);
+                        case 404:
+                            throw new EActiveResourceRequestNotFoundException($errorMessage, $responseCode);
+                        case 405:
+                            throw new EActiveResourceRequestMethodNotAllowedException($errorMessage, $responseCode);
+                        case 406:
+                            throw new EActiveResourceRequestNotAcceptableException($errorMessage, $responseCode);
+
+
+                        case 407:
+                            throw new EActiveResourceRequestProxyAuthenticationException($errorMessage, $responseCode);
+                        case 408:
+                            throw new EActiveResourceRequestTimeoutException($errorMessage, $responseCode);
+                        
+
+                        default:
+                            throw new EActiveResourceRequestException($errorMessage, $responseCode);
+                    }
                 }
-
       }
 
 }
