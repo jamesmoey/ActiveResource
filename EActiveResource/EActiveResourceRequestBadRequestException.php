@@ -1,12 +1,13 @@
 <?php
 /**
  * @author Johannes "Haensel" Bauer
+ * @since 0.2
  * @version 0.1
  */
 
 /**
  * Error 403
  */
-class EActiveResourceRequestForbiddenException extends EActiveResourceRequestException{}
+class EActiveResourceRequestBadRequestException extends EActiveResourceRequestException{}
 
 ?>

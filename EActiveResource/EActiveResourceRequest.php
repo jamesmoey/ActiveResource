@@ -1,6 +1,7 @@
 <?php
 /**
  * @author Johannes "Haensel" Bauer, heavily influenced by Igor Ivanović who created the cUrl extension for Yii
+ * @since 0.1
  * @version 0.1
  */
 
@@ -232,35 +233,42 @@ class EActiveResourceRequest
                     return $response;
                 else
                 {
-                    $errorMessage="The requested uri: $responseUri returned an error with status code $responseCode
-
-                    ".$response;
+                    $errorMessage="The requested uri returned an error with status code $responseCode";
 
                     switch ($responseCode)
                     {
                         case 400:
+                            Yii::trace($response,'ext.EActiveResource');
                             throw new EActiveResourceRequestBadRequestException($errorMessage, $responseCode);
                         case 401:
+                            Yii::trace($response,'ext.EActiveResource');
                             throw new EActiveResourceRequestUnauthorizedAccessException($errorMessage, $responseCode);
 
                             
                         case 403:
+                            Yii::trace($response,'ext.EActiveResource');
                             throw new EActiveResourceRequestForbiddenException($errorMessage, $responseCode);
                         case 404:
+                            Yii::trace($response,'ext.EActiveResource');
                             throw new EActiveResourceRequestNotFoundException($errorMessage, $responseCode);
                         case 405:
+                            Yii::trace($response,'ext.EActiveResource');
                             throw new EActiveResourceRequestMethodNotAllowedException($errorMessage, $responseCode);
                         case 406:
+                            Yii::trace($response,'ext.EActiveResource');
                             throw new EActiveResourceRequestNotAcceptableException($errorMessage, $responseCode);
 
 
                         case 407:
+                            Yii::trace($response,'ext.EActiveResource');
                             throw new EActiveResourceRequestProxyAuthenticationException($errorMessage, $responseCode);
                         case 408:
+                            Yii::trace($response,'ext.EActiveResource');
                             throw new EActiveResourceRequestTimeoutException($errorMessage, $responseCode);
                         
 
                         default:
+                            Yii::trace($response,'ext.EActiveResource');
                             throw new EActiveResourceRequestException($errorMessage, $responseCode);
                     }
                 }
