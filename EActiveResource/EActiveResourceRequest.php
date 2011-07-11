@@ -229,7 +229,7 @@ class EActiveResourceRequest
                 $responseUri=$responseInfo['url'];
                 $responseCode=$responseInfo['http_code'];
 
-                if($responseCode<400)
+                if($responseCode && $responseCode<400)
                     return $response;
                 else
                 {
@@ -237,6 +237,10 @@ class EActiveResourceRequest
 
                     switch ($responseCode)
                     {
+                        case 0:
+                            Yii::trace($response,'ext.EActiveResource');
+                            throw new EActiveResourceRequestException('No response. Service may be down');
+
                         case 400:
                             Yii::trace($response,'ext.EActiveResource');
                             throw new EActiveResourceRequestBadRequestException($errorMessage, $responseCode);
