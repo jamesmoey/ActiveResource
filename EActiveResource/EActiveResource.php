@@ -1186,7 +1186,7 @@ abstract class EActiveResource extends CModel
             Yii::trace('Sending '.$method.' request to '.$uri.' without data, accepting: '.$this->getAcceptType(),'ext.EActiveResource');
 
         $response=$request->run($uri,$method,$data,$headers);
-        Yii::trace('The service responded with: '.$response,'ext.EActiveResource');
+        Yii::trace('The service responded with '.$response,'ext.EActiveResource');
 
         //now build an array out of the response
         switch($this->getAcceptType())

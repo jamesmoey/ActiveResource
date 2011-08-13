@@ -188,7 +188,7 @@ class EActiveResourceParser
         {
             //delete null values
             if(is_array($data))
-                $json=CJSON::encode(array_filter($data));
+                $json=CJSON::encode(self::filterDataArray($data));
             else
                 $json=CJSON::encode($data);
         }
@@ -203,8 +203,23 @@ class EActiveResourceParser
      */
     public static function arrayToFormData($data)
     {
-        return http_build_query(array_filter($data));
+        return http_build_query(self::filterDataArray($data));
     }
 
+    public static function filterDataArray($data)
+    {
+        if (!is_array($data))
+            return $data;
+
+        $items = array();
+
+        foreach ($data as $key => $value)
+            if($value!=="" && $value!==null)
+                $items[$key] = self::filterDataArray($value);
+
+        return $items;
+    }
+                    
+    
 }
 ?>

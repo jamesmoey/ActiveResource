@@ -20,6 +20,7 @@ class EActiveResourceRequest
 	public $info = array();
     	public $error_code = 0;
     	public $error_string = '';
+        public $header;
 
         const APPLICATION_JSON  ='application/json';
         const APPLICATION_XML   ='application/xml';
@@ -149,8 +150,25 @@ class EActiveResourceRequest
             !isset($this->options['timeout'])  ?  $this->setOption(CURLOPT_TIMEOUT,30) : $this->setOption(CURLOPT_TIMEOUT,$this->options['timeout']);
             isset($this->options['setOptions'][CURLOPT_HEADER]) ? $this->setOption(CURLOPT_HEADER,$this->options['setOptions'][CURLOPT_HEADER]) : $this->setOption(CURLOPT_HEADER,FALSE);
             isset($this->options['setOptions'][CURLOPT_RETURNTRANSFER]) ? $this->setOption(CURLOPT_RETURNTRANSFER,$this->options['setOptions'][CURLOPT_RETURNTRANSFER]) : $this->setOption(CURLOPT_RETURNTRANSFER,TRUE);
-	    isset($this->options['setOptions'][CURLOPT_FOLLOWLOCATION]) ? $this->setOption(CURLOPT_FOLLOWLOCATIO,$this->options['setOptions'][CURLOPT_FOLLOWLOCATION]) : $this->setOption(CURLOPT_FOLLOWLOCATION,TRUE);
+	    isset($this->options['setOptions'][CURLOPT_FOLLOWLOCATION]) ? $this->setOption(CURLOPT_FOLLOWLOCATION,$this->options['setOptions'][CURLOPT_FOLLOWLOCATION]) : $this->setOption(CURLOPT_FOLLOWLOCATION,TRUE);
             isset($this->options['setOptions'][CURLOPT_FAILONERROR]) ? $this->setOption(CURLOPT_FAILONERROR,$this->options['setOptions'][CURLOPT_FAILONERROR]) : $this->setOption(CURLOPT_FAILONERROR,FALSE);
+        }
+
+        function http_parse_headers($ch,$header)
+        {
+            $retVal = array();
+            $fields = explode("\r\n", preg_replace('/\x0D\x0A[\x09\x20]+/', ' ', $header));
+            foreach( $fields as $field ) {
+                if( preg_match('/([^:]+): (.+)/m', $field, $match) ) {
+                    $match[1] = preg_replace('/(?<=^|[\x09\x20\x2D])./e', 'strtoupper("\0")', strtolower(trim($match[1])));
+                    if( isset($retVal[$match[1]]) ) {
+                        $retVal[$match[1]] = array($retVal[$match[1]], $match[2]);
+                    } else {
+                        $retVal[$match[1]] = trim($match[2]);
+                    }
+                }
+            }
+            $this->header=$retVal;
         }
 
 	/*
@@ -178,28 +196,8 @@ class EActiveResourceRequest
                         //you have to use a "fake" file with the string as content
                         //If using an array you can use PUT as you would with POST
                         if(isset($data))
-                        {
-                            /*
-                            //throw new CException($data);
-                            // Clean up string
-                            $putString = stripslashes($data);
-                            // Put string into a temporary file
-                            $putData = tmpfile();
-                            // Write the string to the temporary file
-                            fwrite($putData, $putString);
-                            // Move back to the beginning of the file
-                            fseek($putData, 0);
-
-                            $this->setOption(CURLOPT_BINARYTRANSFER, true);
-                            $this->setOption(CURLOPT_RETURNTRANSFER, true);
-                            $this->setOption(CURLOPT_PUT, true);
-                            $this->setOption(CURLOPT_INFILE, $putData);
-                            $this->setOption(CURLOPT_INFILESIZE, strlen($putString));
-                            break;
-                             *
-                             */
                             curl_setopt($this->ch, CURLOPT_POSTFIELDS, $data);
-                        }
+
                     case self::METHOD_POST:
                         $this->setOption(CURLOPT_POSTFIELDS, $data);
                         break;
@@ -207,6 +205,9 @@ class EActiveResourceRequest
 
 
                 $this->setDefaults();
+
+                //set the headers with this function and pass the curl object by reference
+                //$this->setOption(CURLOPT_HEADERFUNCTION,array(&$this,'http_parse_headers'));
 
                 //set options that were defined via config
                 if(isset($this->options['setOptions']))
