@@ -20,7 +20,11 @@ class EActiveResourceRequest
 	public $info = array();
     	public $error_code = 0;
     	public $error_string = '';
-        public $header;
+        
+        private $_header;
+        private $_headerString="";
+        private $_contentType;
+        private $_acceptType;
 
         const APPLICATION_JSON  ='application/json';
         const APPLICATION_XML   ='application/xml';
@@ -78,7 +82,7 @@ class EActiveResourceRequest
         public function setCookies($values)
         {
             if (!is_array($values))
-                throw new EActiveResourceRequestException(Yii::t('EActiveResourceRequest', 'Options must be an array'));
+                throw new EActiveResourceRequestException(Yii::t('EActiveResource', 'Options must be an array'));
             else
                 $params = $this->cleanPost($values);
 
@@ -126,12 +130,12 @@ class EActiveResourceRequest
                 {
                     if (!array_key_exists($key, $validOptions))
                     {
-                        throw new EActiveResourceRequestException(Yii::t('EActiveResourceRequest', '{k} is not a valid option', array('{k}'=>$key)));
+                        throw new EActiveResourceRequestException(Yii::t('EActiveResource', '{k} is not a valid option', array('{k}'=>$key)));
                     }
                     $type = gettype($val);
                     if ((!is_array($validOptions[$key]['type']) && ($type != $validOptions[$key]['type'])) || (is_array($validOptions[$key]['type']) && !in_array($type, $validOptions[$key]['type'])))
                     {
-                        throw new EActiveResourceRequestException(Yii::t('EActiveResourceRequest', '{k} must be of type {t}',
+                        throw new EActiveResourceRequestException(Yii::t('EActiveResource', '{k} must be of type {t}',
                         array('{k}'=>$key,'{t}'=>$validOptions[$key]['type'])));
                     }
 
@@ -147,34 +151,62 @@ class EActiveResourceRequest
 	*/
         protected function setDefaults()
         {
-            !isset($this->options['timeout'])  ?  $this->setOption(CURLOPT_TIMEOUT,30) : $this->setOption(CURLOPT_TIMEOUT,$this->options['timeout']);
+            !isset($this->options['timeout'])  ?  $this->setOption(CURLOPT_TIMEOUT,120) : $this->setOption(CURLOPT_TIMEOUT,$this->options['timeout']);
             isset($this->options['setOptions'][CURLOPT_HEADER]) ? $this->setOption(CURLOPT_HEADER,$this->options['setOptions'][CURLOPT_HEADER]) : $this->setOption(CURLOPT_HEADER,FALSE);
             isset($this->options['setOptions'][CURLOPT_RETURNTRANSFER]) ? $this->setOption(CURLOPT_RETURNTRANSFER,$this->options['setOptions'][CURLOPT_RETURNTRANSFER]) : $this->setOption(CURLOPT_RETURNTRANSFER,TRUE);
 	    isset($this->options['setOptions'][CURLOPT_FOLLOWLOCATION]) ? $this->setOption(CURLOPT_FOLLOWLOCATION,$this->options['setOptions'][CURLOPT_FOLLOWLOCATION]) : $this->setOption(CURLOPT_FOLLOWLOCATION,TRUE);
             isset($this->options['setOptions'][CURLOPT_FAILONERROR]) ? $this->setOption(CURLOPT_FAILONERROR,$this->options['setOptions'][CURLOPT_FAILONERROR]) : $this->setOption(CURLOPT_FAILONERROR,FALSE);
         }
-
-        function http_parse_headers($ch,$header)
+        
+        /**
+         * The callback function for curlopt_HEADERFUNCTION adding each headerline to $this->_headerString
+         * @param curl handle $ch the curl handle needed for the callback
+         * @param string $header a single header line
+         * @return int strlen of the line
+         */
+        protected function addHeaderLine($ch,$header)
         {
-            $retVal = array();
-            $fields = explode("\r\n", preg_replace('/\x0D\x0A[\x09\x20]+/', ' ', $header));
-            foreach( $fields as $field ) {
-                if( preg_match('/([^:]+): (.+)/m', $field, $match) ) {
-                    $match[1] = preg_replace('/(?<=^|[\x09\x20\x2D])./e', 'strtoupper("\0")', strtolower(trim($match[1])));
-                    if( isset($retVal[$match[1]]) ) {
-                        $retVal[$match[1]] = array($retVal[$match[1]], $match[2]);
-                    } else {
-                        $retVal[$match[1]] = trim($match[2]);
-                    }
-                }
-            }
-            $this->header=$retVal;
+            $this->_headerString.=$header;
+            return strlen($header);
+        }
+        
+        public function setHeader($header)
+        {
+            $this->_header=$header;
+        }
+        
+        public function getHeader()
+        {
+            if(isset($this->_header))
+                    return $this->_header;
+        }
+        
+        public function setContentType($contentType)
+        {
+            $this->_contentType=$contentType;
+        }
+        
+        public function getContentType()
+        {
+            if(isset($this->_contentType))
+                    return $this->_contentType;
+        }
+        
+        public function setAcceptType($acceptType)
+        {
+            $this->_acceptType=$acceptType;
+        }
+        
+        public function getAcceptType()
+        {
+            if(isset($this->_acceptType))
+                    return $this->_acceptType;
         }
 
 	/*
 	@MAIN FUNCTION FOR PROCESSING CURL
 	*/
-	public function run($uri,$method=self::METHOD_GET,$data=null,$headers)
+	public function run($uri,$method=self::METHOD_GET,$data=null)
         {
                 $this->setUri($uri);
 
@@ -183,31 +215,49 @@ class EActiveResourceRequest
 
                 $this->ch = curl_init();
                 
+                $parsedData=null;
+                
+                if(!is_null($data))
+                {
+                    switch($this->_contentType)
+                    {
+                    case EActiveResourceRequest::APPLICATION_JSON:
+                        $parsedData=EActiveResourceParser::arrayToJSON($data);
+                        break;
+                    case EActiveResourceRequest::APPLICATION_XML:
+                        $parsedData=EActiveResourceParser::arrayToXML($data);
+                        break;
+                    default:
+                        throw new CException('Content Type '.$this->_contentType.' not implemented!');
+                    }
+                }
+                
+                //set standard headers
+                if(!is_null($parsedData))
+                {
+                    $headers=array(
+                        'Content-Length: '  .strlen($parsedData),
+                        'Content-Type: '    .$this->getContentType(),
+                        'Accept: '          .$this->getAcceptType(),
+                    );
+                }
+                else {
+                    $headers=array(
+                        'Accept: '          .$this->getAcceptType(),
+                    );
+                }
+                
+                $this->setHeader($headers);
+                
                 $this->setOption(CURLOPT_URL,$this->uri);
                 $this->setOption(CURLOPT_CUSTOMREQUEST,$method);
-                $this->setOption(CURLOPT_HTTPHEADER,$headers);
-
-
-                switch($method)
-                {
-                    //only PUT and POST need some preprocessing of the data
-                    case self::METHOD_PUT:
-                        //If you want to PUT a string and not an array (like you would with POST)
-                        //you have to use a "fake" file with the string as content
-                        //If using an array you can use PUT as you would with POST
-                        if(isset($data))
-                            curl_setopt($this->ch, CURLOPT_POSTFIELDS, $data);
-
-                    case self::METHOD_POST:
-                        $this->setOption(CURLOPT_POSTFIELDS, $data);
-                        break;
-                }
-
-
+                $this->setOption(CURLOPT_HTTPHEADER,$this->getHeader());
+                $this->setOption(CURLOPT_HEADERFUNCTION,array($this,'addHeaderLine'));
+                                
+                if(($method==self::METHOD_PUT || $method==self::METHOD_POST) && !is_null($parsedData))
+                    $this->setOption(CURLOPT_POSTFIELDS, $parsedData);
+                
                 $this->setDefaults();
-
-                //set the headers with this function and pass the curl object by reference
-                //$this->setOption(CURLOPT_HEADERFUNCTION,array(&$this,'http_parse_headers'));
 
                 //set options that were defined via config
                 if(isset($this->options['setOptions']))
@@ -224,59 +274,17 @@ class EActiveResourceRequest
                     else
                         $this->setProxyLogin($this->options['login']['username'],$this->options['login']['password']);
 		}
-
-                $response = curl_exec($this->ch);
-                $responseInfo=curl_getinfo($this->ch);
-                $responseUri=$responseInfo['url'];
-                $responseCode=$responseInfo['http_code'];
-
-                if($responseCode && $responseCode<400)
-                    return $response;
+                
+                if(!is_null($parsedData))
+                    Yii::trace('Sending '.$method.' request to '.$uri.' with content-type:'.$this->getContentType().', accept: '.$this->getAcceptType().' and data: '.$parsedData,'ext.EActiveResource.request');
                 else
-                {
-                    $errorMessage="The requested uri returned an error with status code $responseCode";
-
-                    switch ($responseCode)
-                    {
-                        case 0:
-                            Yii::trace($response,'ext.EActiveResource');
-                            throw new EActiveResourceRequestException('No response. Service may be down');
-
-                        case 400:
-                            Yii::trace($response,'ext.EActiveResource');
-                            throw new EActiveResourceRequestBadRequestException($errorMessage, $responseCode);
-                        case 401:
-                            Yii::trace($response,'ext.EActiveResource');
-                            throw new EActiveResourceRequestUnauthorizedAccessException($errorMessage, $responseCode);
-
-                            
-                        case 403:
-                            Yii::trace($response,'ext.EActiveResource');
-                            throw new EActiveResourceRequestForbiddenException($errorMessage, $responseCode);
-                        case 404:
-                            Yii::trace($response,'ext.EActiveResource');
-                            throw new EActiveResourceRequestNotFoundException($errorMessage, $responseCode);
-                        case 405:
-                            Yii::trace($response,'ext.EActiveResource');
-                            throw new EActiveResourceRequestMethodNotAllowedException($errorMessage, $responseCode);
-                        case 406:
-                            Yii::trace($response,'ext.EActiveResource');
-                            throw new EActiveResourceRequestNotAcceptableException($errorMessage, $responseCode);
-
-
-                        case 407:
-                            Yii::trace($response,'ext.EActiveResource');
-                            throw new EActiveResourceRequestProxyAuthenticationException($errorMessage, $responseCode);
-                        case 408:
-                            Yii::trace($response,'ext.EActiveResource');
-                            throw new EActiveResourceRequestTimeoutException($errorMessage, $responseCode);
-                        
-
-                        default:
-                            Yii::trace($response,'ext.EActiveResource');
-                            throw new EActiveResourceRequestException($errorMessage, $responseCode);
-                    }
-                }
+                    Yii::trace('Sending '.$method.' request to '.$uri.' without data, accepting: '.$this->getAcceptType(),'ext.EActiveResource.request');
+                
+                
+                $response=new EActiveResourceResponse(curl_exec($this->ch),curl_getinfo($this->ch),$this->_headerString);
+                
+                curl_close($this->ch);
+                return $response;
       }
 
 }

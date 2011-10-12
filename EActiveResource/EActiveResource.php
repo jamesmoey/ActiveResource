@@ -1146,60 +1146,13 @@ abstract class EActiveResource extends CModel
 
         $request=new EActiveResourceRequest;
 
-        if($data)
-            switch($this->getContentType())
-                {
-                    case EActiveResourceRequest::APPLICATION_JSON:
-                        $data= EActiveResourceParser::arrayToJSON($data);
-                        $headers=array(
-                        'Content-Length: '  .strlen($data),
-                        'Content-Type: '    .$this->getContentType(),
-                        'Accept: '          .$this->getAcceptType(),
-                        );
-                        break;
-                    case EActiveResourceRequest::APPLICATION_XML:
-                        $data=  EActiveResourceParser::arrayToXML($data);
-                        $headers=array(
-                        'Content-Length: '  .strlen($data),
-                        'Content-Type: '    .$this->getContentType(),
-                        'Accept: '          .$this->getAcceptType(),
-                    );
-                        break;
-                    case EActiveResourceRequest::APPLICATION_FORM_URL_ENCODED:
-                        $data=EActiveResourceParser::arrayToFormData($data);
-                        $headers=array(
-                        'Content-Length: '  .strlen($data),
-                        'Content-Type: '    .$this->getContentType(),
-                        'Accept: '          .$this->getAcceptType(),
-                    );
-                        break;
-                }
-        else
-            $headers=array(
-                        'Accept: '          .$this->getAcceptType(),
-                        );
+        $request->setContentType($this->getContentType());
+        $request->setAcceptType($this->getAcceptType());
 
+        $response=$request->run($uri,$method,$data);
+                
+        return $response->getData();
 
-        if($data)
-            Yii::trace('Sending '.$method.' request to '.$uri.' with content-type:'.$this->getContentType().', accept: '.$this->getAcceptType().' and data: '.$data.' with '.$headers[0],'ext.EActiveResource');
-        else
-            Yii::trace('Sending '.$method.' request to '.$uri.' without data, accepting: '.$this->getAcceptType(),'ext.EActiveResource');
-
-        $response=$request->run($uri,$method,$data,$headers);
-        Yii::trace('The service responded with '.$response,'ext.EActiveResource');
-
-        //now build an array out of the response
-        switch($this->getAcceptType())
-        {
-                case EActiveResourceRequest::APPLICATION_JSON:
-                    $parsedResponse=EActiveResourceParser::JSONToArray($response);
-                    return $parsedResponse;
-                    break;
-                case EActiveResourceRequest::APPLICATION_XML:
-                    $parsedResponse=EActiveResourceParser::XMLToArray($response);
-                    return $parsedResponse;
-                    break;
-        }
     }
 }
 
