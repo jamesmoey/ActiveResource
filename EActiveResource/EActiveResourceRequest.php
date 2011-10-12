@@ -14,11 +14,6 @@
 class EActiveResourceRequest
 {
         protected $ch;
-
-	public $options = array();
-	public $info = array();
-    	public $error_code = 0;
-    	public $error_string = '';
         
         private $_uri;
         private $_method;
@@ -27,6 +22,7 @@ class EActiveResourceRequest
         private $_customHeader;
         private $_contentType;
         private $_acceptType;
+        private $_timeout=30;
         
         private $_headerString="";
 
@@ -39,13 +35,6 @@ class EActiveResourceRequest
         const METHOD_PUT    = 'PUT';
         const METHOD_DELETE = 'DELETE';
 
-	protected $validOptions = array(
-            'timeout'=>array('type'=>'integer'),
-            'login'=>array('type'=>'array'),
-            'proxy'=>array('type'=>'array'),
-            'proxylogin'=>array('type'=>'array'),
-            'setOptions'=>array('type'=>'array'),
-	);
 
 	/**
 	 * Initialize the extension
@@ -53,8 +42,8 @@ class EActiveResourceRequest
 	 */
 	public function init()
         {
-		if( !function_exists('curl_init') )
-		throw new EActiveResourceRequestException( Yii::t('EActiveResourceRequest', 'You must have PHP curl enabled in order to use this extension.') );
+            if( !function_exists('curl_init') )
+                throw new EActiveResourceRequestException( Yii::t('EActiveResourceRequest', 'You must have PHP curl enabled in order to use this extension.') );
 	}
 
          /**
@@ -103,49 +92,22 @@ class EActiveResourceRequest
 	/*
 	@PROXY LOGIN SETINGS
 	sets proxy login settings calls onley if is proxy setted
-
 	*/
 	public function setProxyLogin($username = '', $password = '')
         {
             $this->setOption(CURLOPT_PROXYUSERPWD, $username.':'.$password);
         }
-	/*
-	@VALID OPTION CHECKER
-	*/
-	protected static function checkOptions($value, $validOptions)
-        {
-        if (!empty($validOptions))
-        {
-            foreach ($value as $key=>$val)
-                {
-                    if (!array_key_exists($key, $validOptions))
-                    {
-                        throw new EActiveResourceRequestException(Yii::t('EActiveResource', '{k} is not a valid option', array('{k}'=>$key)));
-                    }
-                    $type = gettype($val);
-                    if ((!is_array($validOptions[$key]['type']) && ($type != $validOptions[$key]['type'])) || (is_array($validOptions[$key]['type']) && !in_array($type, $validOptions[$key]['type'])))
-                    {
-                        throw new EActiveResourceRequestException(Yii::t('EActiveResource', '{k} must be of type {t}',
-                        array('{k}'=>$key,'{t}'=>$validOptions[$key]['type'])));
-                    }
 
-                    if (($type == 'array') && array_key_exists('elements', $validOptions[$key]))
-                    {
-                        self::checkOptions($val, $validOptions[$key]['elements']);
-                    }
-                }
-            }
-        }
         /*
 	@DEFAULTS
 	*/
         protected function setDefaults()
         {
-            !isset($this->options['timeout'])  ?  $this->setOption(CURLOPT_TIMEOUT,120) : $this->setOption(CURLOPT_TIMEOUT,$this->options['timeout']);
-            isset($this->options['setOptions'][CURLOPT_HEADER]) ? $this->setOption(CURLOPT_HEADER,$this->options['setOptions'][CURLOPT_HEADER]) : $this->setOption(CURLOPT_HEADER,FALSE);
-            isset($this->options['setOptions'][CURLOPT_RETURNTRANSFER]) ? $this->setOption(CURLOPT_RETURNTRANSFER,$this->options['setOptions'][CURLOPT_RETURNTRANSFER]) : $this->setOption(CURLOPT_RETURNTRANSFER,TRUE);
-	    isset($this->options['setOptions'][CURLOPT_FOLLOWLOCATION]) ? $this->setOption(CURLOPT_FOLLOWLOCATION,$this->options['setOptions'][CURLOPT_FOLLOWLOCATION]) : $this->setOption(CURLOPT_FOLLOWLOCATION,TRUE);
-            isset($this->options['setOptions'][CURLOPT_FAILONERROR]) ? $this->setOption(CURLOPT_FAILONERROR,$this->options['setOptions'][CURLOPT_FAILONERROR]) : $this->setOption(CURLOPT_FAILONERROR,FALSE);
+            $this->setOption(CURLOPT_TIMEOUT,$this->getTimeOut());
+            $this->setOption(CURLOPT_HEADER,FALSE);
+            $this->setOption(CURLOPT_RETURNTRANSFER,TRUE);
+	    $this->setOption(CURLOPT_FOLLOWLOCATION,TRUE);
+            $this->setOption(CURLOPT_FAILONERROR,FALSE);
         }
         
         /**
@@ -158,6 +120,16 @@ class EActiveResourceRequest
         {
             $this->_headerString.=$header;
             return strlen($header);
+        }
+        
+        public function setTimeOut($timeout)
+        {
+            $this->_timeout($timeout);
+        }
+        
+        public function getTimeOut()
+        {
+            return $this->_timeout;
         }
         
         public function getHeader()
@@ -319,28 +291,11 @@ class EActiveResourceRequest
                     $this->setOption(CURLOPT_POSTFIELDS, $this->getParsedData());
                 
                 $this->setDefaults();
-
-                //set options that were defined via config
-                if(isset($this->options['setOptions']))
-                    foreach($this->options['setOptions'] as $k=>$v)
-                        $this->setOption($k,$v);
-
-                isset($this->options['login']) ?  $this->setHttpLogin($this->options['login']['username'],$this->options['login']['password']) :  null;
-                isset($this->options['proxy']) ? $this->setProxy($this->options['proxy']['url'],$this->options['proxy']['port']) : null;
-
-                if(isset($this->options['proxylogin']))
-                {
-                    if(!isset($this->options['proxy']))
-                        throw new EActiveResourceRequestException( Yii::t('EActiveResourceRequest', 'You have to define "proxy" with arrays in order to use proxylogins.') );
-                    else
-                        $this->setProxyLogin($this->options['login']['username'],$this->options['login']['password']);
-		}
                 
                 if(!is_null($this->getParsedData()))
                     Yii::trace('Sending '.$this->getMethod().' request to '.$this->getUri().' with content-type:'.$this->getContentType().', accept: '.$this->getAcceptType().' and data: '.$this->getParsedData(),'ext.EActiveResource.request');
                 else
                     Yii::trace('Sending '.$this->getMethod().' request to '.$this->getUri().' without data, accepting: '.$this->getAcceptType(),'ext.EActiveResource.request');
-                
                 
                 $response=new EActiveResourceResponse(curl_exec($this->ch),curl_getinfo($this->ch),$this->_headerString);
                 

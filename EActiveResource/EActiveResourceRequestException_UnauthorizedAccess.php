@@ -8,6 +8,6 @@
 /**
  * Error 401
  */
-class EActiveResourceRequestUnauthorizedAccessException extends EActiveResourceRequestException{}
+class EActiveResourceRequestException_UnauthorizedAccess extends EActiveResourceRequestException{}
 
 ?>

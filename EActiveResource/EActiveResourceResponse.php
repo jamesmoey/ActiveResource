@@ -14,8 +14,8 @@ class EActiveResourceResponse
         $this->_headerString=$headerString;
         $this->_info=$info;
         $this->parseHeaders();
-        $this->parseData();
         $this->hasErrors();
+        $this->parseData();
     }
     
     public function getRawData()
@@ -61,7 +61,7 @@ class EActiveResourceResponse
                     case null:
                         break;
                     default:
-                        throw new EActiveResourceException('Content Type '.$info['content_type'].' not implemented!');
+                        throw new EActiveResourceException('The service responded with content Type '.$info['content_type'].' which is not implemented!');
                 }
         }
     }
@@ -93,7 +93,10 @@ class EActiveResourceResponse
             return false;
         else
         {
-            $errorMessage="The requested uri returned an error with status code $responseCode";
+            if(YII_DEBUG)
+                $errorMessage="The requested uri returned an error with status code $responseCode \n\n".$this->getRawData();
+            else
+                $errorMessage="The requested uri returned an error with status code $responseCode";
 
             switch ($responseCode)
             {
@@ -103,32 +106,32 @@ class EActiveResourceResponse
 
                 case 400:
                     Yii::trace('ERROR RESPONSE: '.$this->getRawData(),'ext.EActiveResource');
-                    throw new EActiveResourceRequestBadRequestException($errorMessage, $responseCode);
+                    throw new EActiveResourceRequestException_BadRequest($errorMessage, $responseCode);
                 case 401:
                     Yii::trace('ERROR RESPONSE: '.$this->getRawData(),'ext.EActiveResource');
-                    throw new EActiveResourceRequestUnauthorizedAccessException($errorMessage, $responseCode);
+                    throw new EActiveResourceRequestException_UnauthorizedAccess($errorMessage, $responseCode);
 
 
                 case 403:
                     Yii::trace('ERROR RESPONSE: '.$this->getRawData(),'ext.EActiveResource');
-                    throw new EActiveResourceRequestForbiddenException($errorMessage, $responseCode);
+                    throw new EActiveResourceRequestException_Forbidden($errorMessage, $responseCode);
                 case 404:
                     Yii::trace('ERROR RESPONSE: '.$this->getRawData(),'ext.EActiveResource');
-                    throw new EActiveResourceRequestNotFoundException($errorMessage, $responseCode);
+                    throw new EActiveResourceRequestException_NotFound($errorMessage, $responseCode);
                 case 405:
                     Yii::trace('ERROR RESPONSE: '.$this->getRawData(),'ext.EActiveResource');
-                    throw new EActiveResourceRequestMethodNotAllowedException($errorMessage, $responseCode);
+                    throw new EActiveResourceRequestException_MethodNotAllowed($errorMessage, $responseCode);
                 case 406:
                     Yii::trace('ERROR RESPONSE: '.$this->getRawData(),'ext.EActiveResource');
-                    throw new EActiveResourceRequestNotAcceptableException($errorMessage, $responseCode);
+                    throw new EActiveResourceRequestException_NotAcceptable($errorMessage, $responseCode);
 
 
                 case 407:
                     Yii::trace('ERROR RESPONSE: '.$this->getRawData(),'ext.EActiveResource');
-                    throw new EActiveResourceRequestProxyAuthenticationException($errorMessage, $responseCode);
+                    throw new EActiveResourceRequestException_ProxyAuthentication($errorMessage, $responseCode);
                 case 408:
                     Yii::trace('ERROR RESPONSE: '.$this->getRawData(),'ext.EActiveResource');
-                    throw new EActiveResourceRequestTimeoutException($errorMessage, $responseCode);
+                    throw new EActiveResourceRequestException_Timeout($errorMessage, $responseCode);
 
 
                 default:

@@ -8,6 +8,6 @@
 /**
  * Error 403
  */
-class EActiveResourceRequestBadRequestException extends EActiveResourceRequestException{}
+class EActiveResourceRequestException_BadRequest extends EActiveResourceException{}
 
 ?>

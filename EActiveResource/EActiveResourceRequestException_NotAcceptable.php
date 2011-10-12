@@ -8,6 +8,6 @@
 /**
  * Error 406
  */
-class EActiveResourceRequestNotAcceptableException extends EActiveResourceRequestException{}
+class EActiveResourceRequestException_NotAcceptable extends EActiveResourceRequestException{}
 
 ?>

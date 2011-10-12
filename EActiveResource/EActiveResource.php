@@ -698,7 +698,8 @@ abstract class EActiveResource extends CModel
         {
             Yii::trace(get_class($this).'.create()','ext.EActiveResource');
 
-            $returnedmodel=$this->populateRecord($this->postRequest(null,$this->getAttributes()));
+            $response=$this->postRequest(null,$this->getAttributes());
+            $returnedmodel=$this->populateRecord($response);
 
             if($returnedmodel)
             {
@@ -848,7 +849,8 @@ abstract class EActiveResource extends CModel
     public function findById($id)
     {
             Yii::trace(get_class($this).'.findById()','ext.EActiveResource');
-            return $this->populateRecord($this->getRequest($id));
+            $response=$this->getRequest($id);
+            return $this->populateRecord($response->getData());
     }
 
     /**
@@ -860,7 +862,7 @@ abstract class EActiveResource extends CModel
     public function updateById($id,$attributes)
     {
             Yii::trace(get_class($this).'.updateById()','ext.EActiveResource');
-            $this->putRequest($id,$attributes);
+            $response=$this->putRequest($id,$attributes);
     }
 
     /**
@@ -870,7 +872,7 @@ abstract class EActiveResource extends CModel
     public function deleteById($id)
     {
             Yii::trace(get_class($this).'.deleteById()','ext.EActiveResource');
-            $this->deleteRequest($id);
+            $response=$this->deleteRequest($id);
     }
 
     /**
@@ -1018,6 +1020,7 @@ abstract class EActiveResource extends CModel
      * Send a GET request to this resource.
      * @param string $id The id of the resource. This is optional. Set to null if you want to send a request like GET 'http://iamaRESTapi/apiversion/people'
      * @param string $additional Some requests need some additional uri extensions like getting all people that were fired. GET 'http://iamaRESTapi/apiversion/people/fired'. Set to '/fired' if you want to send a request like that
+     * @param array $customHeader A custom header
      * @return array The response as a converted PHP array (from JSON or XML)
      */
     public function getRequest($id=null,$additional=null,$customHeader=array())
@@ -1051,6 +1054,7 @@ abstract class EActiveResource extends CModel
      * @param string $id The id of the resource. This is optional. Set to null if you want to send a request like PUT 'http://iamaRESTapi/apiversion/people'
      * @param array $data An array containing the data to be sent to the service. Defaults to the attributes of this model as an associative array.
      * @param string $additional Some requests need some additional uri extensions like modifying all people that were fired. PUT 'http://iamaRESTapi/apiversion/people/fired'. Set to '/fired' if you want to send a request like that
+     * @param array $customHeader A custom header
      * @return array The response as a converted PHP array (from JSON or XML)
      */
     public function putRequest($id=null,$data=null,$additional=null,$customHeader=array())
@@ -1071,6 +1075,7 @@ abstract class EActiveResource extends CModel
      * Send a custom PUT request if the standard version isn't doing it. But you have to define the whole uri by yourself
      * @param string $uri The whole uri
      * @params array $data The data to be sent
+     * @param array $customHeader A custom header
      * @return array The response as a converted PHP array (from JSON or XML)
      */
     public function customPutRequest($uri,$data,$customHeader=array())
@@ -1083,6 +1088,7 @@ abstract class EActiveResource extends CModel
      * @param string $id The id of the resource. This is optional. Set to null if you want to send a request like POST 'http://iamaRESTapi/apiversion/people'
      * @param array $data An array containing the data to be sent to the service. Defaults to the attributes of this model as an associative array.
      * @param string $additional Some requests need some additional uri extensions like modifying all people that were fired. POST 'http://iamaRESTapi/apiversion/people/fired'. Set to '/fired' if you want to send a request like that
+     * @param array $customHeader A custom header
      * @return array The response as a converted PHP array (from JSON or XML)
      */
     public function postRequest($id=null,$data=null,$additional=null,$customHeader=array())
@@ -1103,6 +1109,7 @@ abstract class EActiveResource extends CModel
      * Send a custom POST request if the standard version isn't doing it. But you have to define the whole uri by yourself
      * @param string $uri The whole uri
      * @param array $data The data to be sent
+     * @param array $customHeader A custom header
      * @return array The response as a converted PHP array (from JSON or XML)
      */
     public function customPostRequest($uri,$data,$customHeader=array())
@@ -1127,6 +1134,7 @@ abstract class EActiveResource extends CModel
     /**
      * Send a custom DELETE request if the standard version isn't doing it. But you have to define the whole uri by yourself
      * @param string $uri The whole uri
+     * @param array $customHeader A custom header
      * @return array The response as a converted PHP array (from JSON or XML)
      */
     public function customDeleteRequest($uri,$customHeader=array())
@@ -1138,8 +1146,9 @@ abstract class EActiveResource extends CModel
      * Creates a new request, sends and receives the data.
      * @param string $uri The uri this request is sent to.
      * @param string $method The method (GET,PUT,POST,DELETE)
+     * @param array $customHeader A customHeader to be sent
      * @param array $data The data to be sent as array
-     * @return array The parsed response as PHP array
+     * @return EActiveResourceResponse The response object
      */
     protected function sendRequest($uri,$method,$customHeader,$data=null)
     {
@@ -1155,7 +1164,7 @@ abstract class EActiveResource extends CModel
 
         $response=$request->run();
                 
-        return $response->getData();
+        return $response;
 
     }
 }

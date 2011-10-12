@@ -8,6 +8,6 @@
 /**
  * Error 407
  */
-class EActiveResourceRequestProxyAuthenticationException extends EActiveResourceRequestException{}
+class EActiveResourceRequestException_ProxyAuthentication extends EActiveResourceRequestException{}
 
 ?>
