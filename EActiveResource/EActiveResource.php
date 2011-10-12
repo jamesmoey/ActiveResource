@@ -1020,7 +1020,7 @@ abstract class EActiveResource extends CModel
      * @param string $additional Some requests need some additional uri extensions like getting all people that were fired. GET 'http://iamaRESTapi/apiversion/people/fired'. Set to '/fired' if you want to send a request like that
      * @return array The response as a converted PHP array (from JSON or XML)
      */
-    public function getRequest($id=null,$additional=null)
+    public function getRequest($id=null,$additional=null,$customHeader='')
     {
         $uri='';
         if($this->getSite())
@@ -1033,7 +1033,7 @@ abstract class EActiveResource extends CModel
             $uri.=$additional;
         if($this->getFileExtension())
             $uri.=$this->getFileExtension();
-        return $this->sendRequest($uri, EActiveResourceRequest::METHOD_GET);
+        return $this->sendRequest($uri, EActiveResourceRequest::METHOD_GET,$customHeader);
     }
 
     /**
@@ -1041,9 +1041,9 @@ abstract class EActiveResource extends CModel
      * @param string $uri The whole uri
      * @return array The response as a converted PHP array (from JSON or XML)
      */
-    public function customGetRequest($uri)
+    public function customGetRequest($uri,$customHeader='')
     {
-        return $this->sendRequest($uri,EActiveResourceRequest::METHOD_GET);
+        return $this->sendRequest($uri,EActiveResourceRequest::METHOD_GET,$customHeader);
     }
 
     /**
@@ -1053,7 +1053,7 @@ abstract class EActiveResource extends CModel
      * @param string $additional Some requests need some additional uri extensions like modifying all people that were fired. PUT 'http://iamaRESTapi/apiversion/people/fired'. Set to '/fired' if you want to send a request like that
      * @return array The response as a converted PHP array (from JSON or XML)
      */
-    public function putRequest($id=null,$data=null,$additional=null)
+    public function putRequest($id=null,$data=null,$additional=null,$customHeader='')
     {
         $uri='';
         if($this->getSite())
@@ -1064,7 +1064,7 @@ abstract class EActiveResource extends CModel
             $uri.='/'.$id;
         if($additional)
             $uri.=$additional;
-        return $this->sendRequest($uri,EActiveResourceRequest::METHOD_PUT,$data);
+        return $this->sendRequest($uri,EActiveResourceRequest::METHOD_PUT,$data,$customHeader);
     }
 
     /**
@@ -1073,9 +1073,9 @@ abstract class EActiveResource extends CModel
      * @params array $data The data to be sent
      * @return array The response as a converted PHP array (from JSON or XML)
      */
-    public function customPutRequest($uri,$data)
+    public function customPutRequest($uri,$data,$customHeader='')
     {
-        return $this->sendRequest($uri,EActiveResourceRequest::METHOD_PUT,$data);
+        return $this->sendRequest($uri,EActiveResourceRequest::METHOD_PUT,$data,$customHeader);
     }
 
     /**
@@ -1085,7 +1085,7 @@ abstract class EActiveResource extends CModel
      * @param string $additional Some requests need some additional uri extensions like modifying all people that were fired. POST 'http://iamaRESTapi/apiversion/people/fired'. Set to '/fired' if you want to send a request like that
      * @return array The response as a converted PHP array (from JSON or XML)
      */
-    public function postRequest($id=null,$data=null,$additional=null)
+    public function postRequest($id=null,$data=null,$additional=null,$customHeader='')
     {
         $uri='';
         if($this->getSite())
@@ -1096,7 +1096,7 @@ abstract class EActiveResource extends CModel
             $uri.='/'.$id;
         if($additional)
             $uri.=$additional;
-        return $this->sendRequest($uri,EActiveResourceRequest::METHOD_POST,$data);
+        return $this->sendRequest($uri,EActiveResourceRequest::METHOD_POST,$customHeader,$data);
     }
 
     /**
@@ -1105,12 +1105,12 @@ abstract class EActiveResource extends CModel
      * @param array $data The data to be sent
      * @return array The response as a converted PHP array (from JSON or XML)
      */
-    public function customPostRequest($uri,$data)
+    public function customPostRequest($uri,$data,$customHeader='')
     {
-        return $this->sendRequest($uri,EActiveResourceRequest::METHOD_POST,$data);
+        return $this->sendRequest($uri,EActiveResourceRequest::METHOD_POST,$cutomHeader,$data);
     }
 
-    public function deleteRequest($id=null,$additional=null)
+    public function deleteRequest($id=null,$additional=null,$customHeader='')
     {
         $uri='';
         if($this->getSite())
@@ -1121,7 +1121,7 @@ abstract class EActiveResource extends CModel
             $uri.='/'.$id;
         if($additional)
             $uri.=$additional;
-        return $this->sendRequest($uri,EActiveResourceRequest::METHOD_DELETE);
+        return $this->sendRequest($uri,EActiveResourceRequest::METHOD_DELETE,$customHeader);
     }
 
     /**
@@ -1129,9 +1129,9 @@ abstract class EActiveResource extends CModel
      * @param string $uri The whole uri
      * @return array The response as a converted PHP array (from JSON or XML)
      */
-    public function customDeleteRequest($uri)
+    public function customDeleteRequest($uri,$customHeader='')
     {
-        return $this->sendRequest($uri,EActiveResourceRequest::METHOD_DELETE);
+        return $this->sendRequest($uri,EActiveResourceRequest::METHOD_DELETE,$customHeader);
     }
 
     /**
@@ -1141,13 +1141,14 @@ abstract class EActiveResource extends CModel
      * @param array $data The data to be sent as array
      * @return array The parsed response as PHP array
      */
-    protected function sendRequest($uri,$method=EActiveResourceRequest::METHOD_GET,$data=null)
+    protected function sendRequest($uri,$method,$customHeader,$data=null)
     {
 
         $request=new EActiveResourceRequest;
 
         $request->setContentType($this->getContentType());
         $request->setAcceptType($this->getAcceptType());
+        $request->setCustomHeader($customHeader);
 
         $response=$request->run($uri,$method,$data);
                 

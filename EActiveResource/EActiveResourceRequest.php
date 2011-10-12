@@ -175,6 +175,13 @@ class EActiveResourceRequest
             $this->_header=$header;
         }
         
+        public function setCustomHeader($customHeader)
+        {
+            if($customHeader=='')
+                return;
+            $this->setHeader($this->getHeader().$customHeader);
+        }
+        
         public function getHeader()
         {
             if(isset($this->_header))
