@@ -13,7 +13,6 @@
  */
 class EActiveResourceRequest
 {
-        protected $uri;
         protected $ch;
 
 	public $options = array();
@@ -21,10 +20,15 @@ class EActiveResourceRequest
     	public $error_code = 0;
     	public $error_string = '';
         
+        private $_uri;
+        private $_method;
+        private $_data;
         private $_header;
-        private $_headerString="";
+        private $_customHeader;
         private $_contentType;
         private $_acceptType;
+        
+        private $_headerString="";
 
         const APPLICATION_JSON  ='application/json';
         const APPLICATION_XML   ='application/xml';
@@ -60,20 +64,6 @@ class EActiveResourceRequest
         protected function setOption($key,$value)
         {
             curl_setopt($this->ch,$key, $value);
-        }
-
-
-	/**
-	* Formats Url if http:// dont exist
-	* set http://
-	*/
-        public function setUri($uri)
-        {
-            if(!preg_match('!^\w+://! i', $uri))
-            {
-                $url = 'http://'.$uri;
-            }
-            $this->uri = $uri;
         }
 
 	 /*
@@ -170,24 +160,124 @@ class EActiveResourceRequest
             return strlen($header);
         }
         
-        public function setHeader($header)
-        {
-            $this->_header=$header;
-        }
-        
-        public function setCustomHeader($customHeader)
-        {
-            if($customHeader=='')
-                return;
-            $this->setHeader($this->getHeader().$customHeader);
-        }
-        
         public function getHeader()
         {
             if(isset($this->_header))
                     return $this->_header;
+            
+            $standardHeader=$this->getStandardHeader();
+            $customHeader=$this->getCustomHeader();
+            
+            return CMap::mergeArray($standardHeader,$customHeader);
         }
         
+        public function getStandardHeader()
+        {
+            
+            //set standard headers
+            if(!is_null($this->getParsedData()))
+            {
+                $header=array(
+                    'Content-Length: '  .strlen($this->getParsedData()),
+                    'Content-Type: '    .$this->getContentType(),
+                    'Accept: '          .$this->getAcceptType(),
+                );
+            }
+            else {
+                $header=array(
+                    'Accept: '          .$this->getAcceptType(),
+                );
+            }
+            
+            return $header;
+        }
+
+        public function setUri($uri)
+        {
+            if(!preg_match('!^\w+://! i', $uri))
+            {
+                $url = 'http://'.$uri;
+            }
+            $this->_uri = $uri;
+        }
+        
+        public function getUri()
+        {
+            if(isset($this->_uri))
+                    return $this->_uri;
+            else
+                return null;
+        }
+        
+        public function getData()
+        {
+            if(isset($this->_data))
+                    return $this->_data;
+            else
+                return null;
+        }
+        
+        public function setData($data)
+        {
+            $this->_data=$data;
+        }
+        
+        public function getParsedData()
+        {
+            if(isset($this->_parsedData))
+                    return $this->_parsedData;
+            
+            if(!is_null($this->getData()))
+            {
+                switch($this->getContentType())
+                {
+                    case self::APPLICATION_JSON:
+                        $parsedData=EActiveResourceParser::arrayToJSON($this->getData());
+                        break;
+                    case self::APPLICATION_XML:
+                        $parsedData=EActiveResourceParser::arrayToXML($this->getData());
+                        break;
+                    default:
+                        throw new CException('Content Type '.$this->getContentType().' not implemented!');
+                }
+                
+                return $this->_parsedData=$parsedData;
+            }
+            
+            return null;
+        }
+                
+        public function getMethod()
+        {
+            if(isset($this->_method))
+                    return $this->_method;
+            else
+                return self::METHOD_GET;
+        }
+        
+        public function setMethod($method=self::METHOD_GET)
+        {
+            $this->_method=$method;
+        }
+        
+        public function getCustomHeader()
+        {
+            if(isset($this->_customHeader))
+                    return $this->_customHeader;
+            else
+                return array();
+        }
+        
+        /**
+         * 
+         * @param array $customHeader the custom header array
+         * @return array the 
+         */
+        public function setCustomHeader($customHeader)
+        {
+            $this->_customHeader=$customHeader;
+        }
+                
         public function setContentType($contentType)
         {
             $this->_contentType=$contentType;
@@ -213,56 +303,20 @@ class EActiveResourceRequest
 	/*
 	@MAIN FUNCTION FOR PROCESSING CURL
 	*/
-	public function run($uri,$method=self::METHOD_GET,$data=null)
+	public function run()
         {
-                $this->setUri($uri);
-
-                if( !$this->uri )
+                if(is_null($this->getUri()))
                     throw new EActiveResourceRequestException(Yii::t('EActiveResourceRequest', 'No uri set') );
 
                 $this->ch = curl_init();
-                
-                $parsedData=null;
-                
-                if(!is_null($data))
-                {
-                    switch($this->_contentType)
-                    {
-                    case EActiveResourceRequest::APPLICATION_JSON:
-                        $parsedData=EActiveResourceParser::arrayToJSON($data);
-                        break;
-                    case EActiveResourceRequest::APPLICATION_XML:
-                        $parsedData=EActiveResourceParser::arrayToXML($data);
-                        break;
-                    default:
-                        throw new CException('Content Type '.$this->_contentType.' not implemented!');
-                    }
-                }
-                
-                //set standard headers
-                if(!is_null($parsedData))
-                {
-                    $headers=array(
-                        'Content-Length: '  .strlen($parsedData),
-                        'Content-Type: '    .$this->getContentType(),
-                        'Accept: '          .$this->getAcceptType(),
-                    );
-                }
-                else {
-                    $headers=array(
-                        'Accept: '          .$this->getAcceptType(),
-                    );
-                }
-                
-                $this->setHeader($headers);
-                
-                $this->setOption(CURLOPT_URL,$this->uri);
-                $this->setOption(CURLOPT_CUSTOMREQUEST,$method);
+                                                
+                $this->setOption(CURLOPT_URL,$this->getUri());
+                $this->setOption(CURLOPT_CUSTOMREQUEST,$this->getMethod());
                 $this->setOption(CURLOPT_HTTPHEADER,$this->getHeader());
                 $this->setOption(CURLOPT_HEADERFUNCTION,array($this,'addHeaderLine'));
                                 
-                if(($method==self::METHOD_PUT || $method==self::METHOD_POST) && !is_null($parsedData))
-                    $this->setOption(CURLOPT_POSTFIELDS, $parsedData);
+                if(($this->getMethod()==self::METHOD_PUT || $this->getMethod()==self::METHOD_POST) && !is_null($this->getParsedData()))
+                    $this->setOption(CURLOPT_POSTFIELDS, $this->getParsedData());
                 
                 $this->setDefaults();
 
@@ -282,10 +336,10 @@ class EActiveResourceRequest
                         $this->setProxyLogin($this->options['login']['username'],$this->options['login']['password']);
 		}
                 
-                if(!is_null($parsedData))
-                    Yii::trace('Sending '.$method.' request to '.$uri.' with content-type:'.$this->getContentType().', accept: '.$this->getAcceptType().' and data: '.$parsedData,'ext.EActiveResource.request');
+                if(!is_null($this->getParsedData()))
+                    Yii::trace('Sending '.$this->getMethod().' request to '.$this->getUri().' with content-type:'.$this->getContentType().', accept: '.$this->getAcceptType().' and data: '.$this->getParsedData(),'ext.EActiveResource.request');
                 else
-                    Yii::trace('Sending '.$method.' request to '.$uri.' without data, accepting: '.$this->getAcceptType(),'ext.EActiveResource.request');
+                    Yii::trace('Sending '.$this->getMethod().' request to '.$this->getUri().' without data, accepting: '.$this->getAcceptType(),'ext.EActiveResource.request');
                 
                 
                 $response=new EActiveResourceResponse(curl_exec($this->ch),curl_getinfo($this->ch),$this->_headerString);
