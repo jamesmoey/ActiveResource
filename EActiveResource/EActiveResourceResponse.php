@@ -1,5 +1,13 @@
 <?php
+/**
+ * @author Johannes "Haensel" Bauer
+ * @since 0.3
+ */
 
+/**
+ * This class encapsulates a curl response and is used to extract response headers,
+ * raw data, parsed data and throws response exceptions according to the http response codes returned by the service
+ */
 class EActiveResourceResponse
 {
     private $_rawData;
@@ -8,6 +16,12 @@ class EActiveResourceResponse
     private $_headerString;//the raw header
     private $_header;
     
+    /**
+     * Constructor
+     * @param string $rawData The raw data returned by the service (xml,json etc.)
+     * @param array $info The curl response info array
+     * @param string $headerString The header string returned by the service
+     */
     public function __construct($rawData,$info,$headerString)
     {
         $this->_rawData=$rawData;
@@ -18,30 +32,50 @@ class EActiveResourceResponse
         $this->parseData();
     }
     
+    /**
+     * Getter for returning the raw response of the service
+     * @return string The raw data
+     */
     public function getRawData()
     {
         if(isset($this->_rawData))
             return $this->_rawData;
     }
     
+    /**
+     * Getter for returing the parsed data as array
+     * @return array the parsed data
+     */
     public function getData()
     {
         if(isset($this->_parsedData))
             return $this->_parsedData;
     }
     
+    /**
+     * Getter for returning the curl info of this response
+     * @return array the curl info
+     */
     public function getInfo()
     {
         if(isset($this->_info))
             return $this->_info;
     }
     
+    /**
+     * Getter for the header
+     * @return array the header
+     */
     public function getHeader()
     {
         if(isset($this->_header))
             return $this->_header;
     }
     
+    /**
+     * Internally used to parse the raw response from the service
+     * and create an PHP array according to the accept type (JSON, XML)
+     */
     public function parseData()
     {
         $info=$this->getInfo();
@@ -49,7 +83,7 @@ class EActiveResourceResponse
         if(isset($info['content_type']))
         {
             
-            Yii::trace('The service responded with '.$this->getRawData(),'ext.EActiveResource.response');
+            Yii::trace("Response took ".$info['total_time']." seconds:\n".$this->getRawData(),'ext.EActiveResource.response');
             switch($info['content_type'])
                 {
                     case EActiveResourceRequest::APPLICATION_JSON:
@@ -66,6 +100,9 @@ class EActiveResourceResponse
         }
     }
     
+    /**
+     * Internally used to create an array out of the header string returned by the service. Use getHeader() to get the result
+     */
     protected function parseHeaders()
     {
         $retVal = array();
@@ -82,7 +119,11 @@ class EActiveResourceResponse
         }
         $this->_header=$retVal;
     }
-      
+    
+    /**
+     * Internally used to check the response codes. Throws errors if errors occured
+     * @return boolean returns false if no errors occurred, throws exception if errors occured
+     */
     protected function hasErrors()
     {
         $responseInfo=$this->getInfo();

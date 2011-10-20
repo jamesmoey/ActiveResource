@@ -2,7 +2,6 @@
 /**
  * @author Johannes "Haensel" Bauer
  * @since version 0.1
- * @version 0.1
  */
 
 /**
@@ -1021,7 +1020,7 @@ abstract class EActiveResource extends CModel
      * @param string $id The id of the resource. This is optional. Set to null if you want to send a request like GET 'http://iamaRESTapi/apiversion/people'
      * @param string $additional Some requests need some additional uri extensions like getting all people that were fired. GET 'http://iamaRESTapi/apiversion/people/fired'. Set to '/fired' if you want to send a request like that
      * @param array $customHeader A custom header
-     * @return array The response as a converted PHP array (from JSON or XML)
+     * @return EActiveResourceResponse The response object
      */
     public function getRequest($id=null,$additional=null,$customHeader=array())
     {
@@ -1036,13 +1035,14 @@ abstract class EActiveResource extends CModel
             $uri.=$additional;
         if($this->getFileExtension())
             $uri.=$this->getFileExtension();
+        
         return $this->sendRequest($uri, EActiveResourceRequest::METHOD_GET,$customHeader);
     }
 
     /**
      * Send a custom GET request if the standard version isn't doing it. But you have to define the whole uri by yourself
      * @param string $uri The whole uri
-     * @return array The response as a converted PHP array (from JSON or XML)
+     * @return EActiveResourceResponse The response object
      */
     public function customGetRequest($uri,$customHeader=array())
     {
@@ -1055,7 +1055,7 @@ abstract class EActiveResource extends CModel
      * @param array $data An array containing the data to be sent to the service. Defaults to the attributes of this model as an associative array.
      * @param string $additional Some requests need some additional uri extensions like modifying all people that were fired. PUT 'http://iamaRESTapi/apiversion/people/fired'. Set to '/fired' if you want to send a request like that
      * @param array $customHeader A custom header
-     * @return array The response as a converted PHP array (from JSON or XML)
+     * @return EActiveResourceResponse The response object
      */
     public function putRequest($id=null,$data=null,$additional=null,$customHeader=array())
     {
@@ -1076,7 +1076,7 @@ abstract class EActiveResource extends CModel
      * @param string $uri The whole uri
      * @params array $data The data to be sent
      * @param array $customHeader A custom header
-     * @return array The response as a converted PHP array (from JSON or XML)
+     * @return EActiveResourceResponse The response object
      */
     public function customPutRequest($uri,$data,$customHeader=array())
     {
@@ -1089,7 +1089,7 @@ abstract class EActiveResource extends CModel
      * @param array $data An array containing the data to be sent to the service. Defaults to the attributes of this model as an associative array.
      * @param string $additional Some requests need some additional uri extensions like modifying all people that were fired. POST 'http://iamaRESTapi/apiversion/people/fired'. Set to '/fired' if you want to send a request like that
      * @param array $customHeader A custom header
-     * @return array The response as a converted PHP array (from JSON or XML)
+     * @return EActiveResourceResponse The response object
      */
     public function postRequest($id=null,$data=null,$additional=null,$customHeader=array())
     {
@@ -1110,7 +1110,7 @@ abstract class EActiveResource extends CModel
      * @param string $uri The whole uri
      * @param array $data The data to be sent
      * @param array $customHeader A custom header
-     * @return array The response as a converted PHP array (from JSON or XML)
+     * @return EActiveResourceResponse The response object
      */
     public function customPostRequest($uri,$data,$customHeader=array())
     {
@@ -1135,7 +1135,7 @@ abstract class EActiveResource extends CModel
      * Send a custom DELETE request if the standard version isn't doing it. But you have to define the whole uri by yourself
      * @param string $uri The whole uri
      * @param array $customHeader A custom header
-     * @return array The response as a converted PHP array (from JSON or XML)
+     * @return EActiveResourceResponse The response object
      */
     public function customDeleteRequest($uri,$customHeader=array())
     {

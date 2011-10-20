@@ -2,7 +2,6 @@
 /**
  * @author Johannes "Haensel" Bauer, heavily influenced by Igor Ivanović who created the cUrl extension for Yii
  * @since 0.1
- * @version 0.1
  */
 
 /**
@@ -122,16 +121,28 @@ class EActiveResourceRequest
             return strlen($header);
         }
         
+        /**
+         * Set the timeout of this request in seconds
+         * @param int $timeout  The timeout in seconds
+         */
         public function setTimeOut($timeout)
         {
             $this->_timeout($timeout);
         }
         
+        /**
+         * Getter for the currently set timeout for this request
+         * @return int timeout in seconds 
+         */
         public function getTimeOut()
         {
             return $this->_timeout;
         }
         
+        /**
+         * Getter for the currently set header used by curl
+         * @return array The header to be sent to the service
+         */
         public function getHeader()
         {
             if(isset($this->_header))
@@ -143,6 +154,11 @@ class EActiveResourceRequest
             return CMap::mergeArray($standardHeader,$customHeader);
         }
         
+        /**
+         * Getter for the "standard header". This method simply checks if there is data to be sent by this request and if so
+         * sets the content type, content length and the accept type to create a basic header
+         * @return array the standard header 
+         */
         public function getStandardHeader()
         {
             
@@ -164,6 +180,10 @@ class EActiveResourceRequest
             return $header;
         }
 
+        /**
+         * Sets the uri for this request
+         * @param string $uri The uri
+         */
         public function setUri($uri)
         {
             if(!preg_match('!^\w+://! i', $uri))
@@ -173,6 +193,10 @@ class EActiveResourceRequest
             $this->_uri = $uri;
         }
         
+        /**
+         * Get the current uri for this request
+         * @return string the uri 
+         */
         public function getUri()
         {
             if(isset($this->_uri))
@@ -181,6 +205,10 @@ class EActiveResourceRequest
                 return null;
         }
         
+        /**
+         * Getter for the data set for this request
+         * @return array the data set for this request (a PHP array)
+         */
         public function getData()
         {
             if(isset($this->_data))
@@ -189,11 +217,19 @@ class EActiveResourceRequest
                 return null;
         }
         
+        /**
+         * Sets the data for this request
+         * @param array $data The data to be sent as PHP array
+         */
         public function setData($data)
         {
             $this->_data=$data;
         }
         
+        /**
+         * Parsed the data according to the content type to build a valid request (JSON or XML)
+         * @return string the JSON or XML encoded string, null if no data is set 
+         */
         public function getParsedData()
         {
             if(isset($this->_parsedData))
@@ -218,7 +254,11 @@ class EActiveResourceRequest
             
             return null;
         }
-                
+        
+        /**
+         * Get the currently used method for this request (GET,PUT,POST,DELETE)
+         * @return string The method used
+         */
         public function getMethod()
         {
             if(isset($this->_method))
@@ -227,11 +267,19 @@ class EActiveResourceRequest
                 return self::METHOD_GET;
         }
         
+        /**
+         * Set the method to be used by this request (GET,PUT,POST,DELETE)
+         * @param string $method The method. Defaults to GET 
+         */
         public function setMethod($method=self::METHOD_GET)
         {
             $this->_method=$method;
         }
         
+        /**
+         * Get the custom header set for this request
+         * @return array the custom header array 
+         */
         public function getCustomHeader()
         {
             if(isset($this->_customHeader))
@@ -241,40 +289,57 @@ class EActiveResourceRequest
         }
         
         /**
-         * 
+         * Sets a custom header for this request. It will be mearched with the standard header array
+         * defining accept type, content length and content type.
          * @param array $customHeader the custom header array
-         * @return array the 
          */
         public function setCustomHeader($customHeader)
         {
             $this->_customHeader=$customHeader;
         }
                 
+        /**
+         * Sets the content type
+         * @param string $contentType 
+         */
         public function setContentType($contentType)
         {
             $this->_contentType=$contentType;
         }
         
+        /**
+         * Get the currently used content type
+         * @return string the content type
+         */
         public function getContentType()
         {
             if(isset($this->_contentType))
                     return $this->_contentType;
         }
         
+        /**
+         * Sets the accept type
+         * @param string $acceptType 
+         */
         public function setAcceptType($acceptType)
         {
             $this->_acceptType=$acceptType;
         }
         
+        /**
+         * Get the currently used accept type
+         * @return string the accept type
+         */
         public function getAcceptType()
         {
             if(isset($this->_acceptType))
                     return $this->_acceptType;
         }
 
-	/*
-	@MAIN FUNCTION FOR PROCESSING CURL
-	*/
+	/**
+         * Sends the request and returns the response object.
+         * @return EActiveResourceResponse The response object 
+         */
 	public function run()
         {
                 if(is_null($this->getUri()))
