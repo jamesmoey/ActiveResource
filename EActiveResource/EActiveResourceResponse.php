@@ -13,6 +13,7 @@ class EActiveResourceResponse
     private $_rawData;
     private $_parsedData;
     private $_info;
+    private $_acceptType;
     private $_headerString;//the raw header
     private $_header;
     
@@ -22,11 +23,12 @@ class EActiveResourceResponse
      * @param array $info The curl response info array
      * @param string $headerString The header string returned by the service
      */
-    public function __construct($rawData,$info,$headerString)
+    public function __construct($rawData,$info,$headerString,$acceptType)
     {
         $this->_rawData=$rawData;
         $this->_headerString=$headerString;
         $this->_info=$info;
+        $this->_acceptType=$acceptType;
         $this->parseHeaders();
         $this->hasErrors();
         $this->parseData();
@@ -78,26 +80,21 @@ class EActiveResourceResponse
      */
     public function parseData()
     {
-        $info=$this->getInfo();
+        Yii::trace("Response took ".$this->_info['total_time']." seconds:\n".$this->getRawData(),'ext.EActiveResource.response');
         
-        if(isset($info['content_type']))
-        {
-            
-            Yii::trace("Response took ".$info['total_time']." seconds:\n".$this->getRawData(),'ext.EActiveResource.response');
-            switch($info['content_type'])
-                {
-                    case EActiveResourceRequest::APPLICATION_JSON:
-                        $this->_parsedData=EActiveResourceParser::JSONtoArray($this->getRawData());
-                        break;
-                    case EActiveResourceRequest::APPLICATION_XML:
-                        $this->_parsedData=EActiveResourceParser::XMLtoArray($this->getRawData());
-                        break;
-                    case null:
-                        break;
-                    default:
-                        throw new EActiveResourceException('The service responded with content Type '.$info['content_type'].' which is not implemented!');
-                }
-        }
+        switch($this->_acceptType)
+            {
+                case EActiveResourceRequest::APPLICATION_JSON:
+                    $this->_parsedData=EActiveResourceParser::JSONtoArray($this->getRawData());
+                    break;
+                case EActiveResourceRequest::APPLICATION_XML:
+                    $this->_parsedData=EActiveResourceParser::XMLtoArray($this->getRawData());
+                    break;
+                case null:
+                    break;
+                default:
+                    throw new EActiveResourceException('Accept Type '.$info['content_type'].' not implemented!');
+            }
     }
     
     /**
