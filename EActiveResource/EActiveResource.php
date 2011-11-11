@@ -1114,7 +1114,7 @@ abstract class EActiveResource extends CModel
      */
     public function customPostRequest($uri,$data,$customHeader=array())
     {
-        return $this->sendRequest($uri,EActiveResourceRequest::METHOD_POST,$cutomHeader,$data);
+        return $this->sendRequest($uri,EActiveResourceRequest::METHOD_POST,$customHeader,$data);
     }
 
     public function deleteRequest($id=null,$additional=null,$customHeader=array())
