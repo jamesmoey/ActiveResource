@@ -341,7 +341,7 @@ class EActiveResourceRequest
          * @return EActiveResourceResponse The response object 
          */
 	public function run()
-        {
+        {            
                 if(is_null($this->getUri()))
                     throw new EActiveResourceRequestException(Yii::t('EActiveResourceRequest', 'No uri set') );
 
@@ -352,9 +352,9 @@ class EActiveResourceRequest
                 $this->setOption(CURLOPT_HTTPHEADER,$this->getHeader());
                 $this->setOption(CURLOPT_HEADERFUNCTION,array($this,'addHeaderLine'));
                                 
-                if(($this->getMethod()==self::METHOD_PUT || $this->getMethod()==self::METHOD_POST) && !is_null($this->getParsedData()))
+                if(!is_null($this->getParsedData()))
                     $this->setOption(CURLOPT_POSTFIELDS, $this->getParsedData());
-                
+                                
                 $this->setDefaults();
                 
                 if(!is_null($this->getParsedData()))

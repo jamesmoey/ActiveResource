@@ -1068,7 +1068,7 @@ abstract class EActiveResource extends CModel
             $uri.='/'.$id;
         if($additional)
             $uri.=$additional;
-        return $this->sendRequest($uri,EActiveResourceRequest::METHOD_PUT,$data,$customHeader);
+        return $this->sendRequest($uri,EActiveResourceRequest::METHOD_PUT,$customHeader,$data);
     }
 
     /**
@@ -1080,7 +1080,7 @@ abstract class EActiveResource extends CModel
      */
     public function customPutRequest($uri,$data,$customHeader=array())
     {
-        return $this->sendRequest($uri,EActiveResourceRequest::METHOD_PUT,$data,$customHeader);
+        return $this->sendRequest($uri,EActiveResourceRequest::METHOD_PUT,$customHeader,$data);
     }
 
     /**
@@ -1152,7 +1152,6 @@ abstract class EActiveResource extends CModel
      */
     protected function sendRequest($uri,$method,$customHeader,$data=null)
     {
-
         $request=new EActiveResourceRequest;
 
         $request->setUri($uri);
