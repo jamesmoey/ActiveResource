@@ -62,7 +62,7 @@ $person = new Person; //no request
 $person->name='Haensel'; //no request, sets the attribute "name" to "Haensel" even if no 'safe' rule is set.
 $person->gender='m'; //no request, same as with name
 $person->save(); // POST request to http://api.aRESTservice.com/people with data '{'name';'Haensel','gender':'m'}'
-~~
+~~~
 //using validation rules
 
 add the rules() function to your model
