@@ -7,7 +7,7 @@
 /**
  * The EActiveResourceConnection component is used to define the configuration for all resources used in a project and allows caching
  * responses the same CActiveRecord does.
- * Example: 'activeresource'=>array('resources'=>array('MyClassName'=>array(
+ * Example: 'activeresource'=>array(resources'=>array('MyClassName'=>array(
             'site'=>'http://api.aRESTservice.com',
             'resource'=>'people',
             'contenttype'=>'application/json',
@@ -31,10 +31,10 @@ class EActiveResourceConnection extends CApplicationComponent
      */
     public function getResourceConfiguration($activeResourceClassName)
     {
-        if(isset($this->resources[$activeResourceClass]))
-                return $this->resources[$activeResourceClass];
+        if(isset($this->resources[$activeResourceClassName]))
+                return $this->resources[$activeResourceClassName];
         else
-            throw new EActiveResourceException('No configuration for class '.$activeResourceClass.' found!');
+            throw new EActiveResourceException('No configuration for class '.$activeResourceClassName.' found!');
     }
     
     /**

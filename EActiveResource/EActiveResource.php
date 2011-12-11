@@ -110,7 +110,7 @@ abstract class EActiveResource extends CModel
      */
     public function rest()
     {
-        return $this->getConnection()->getResourceConfig(get_class($this));
+        return $this->getConnection()->getResourceConfiguration(get_class($this));
     }
 
     /**
