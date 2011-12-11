@@ -22,7 +22,8 @@ and look for the category "ext.EActiveResource"
 1.) Add the extension to Yii by placing it in your application's extension folder (for example '/protected/extensions')
 2.) Edit your applications main.php config file and add 'application.extensions.EActiveResource.*' to your import definitions
 3.) Add the configuration for your resources to the main config
-	'activeresource'=>array(
+
+	    'activeresource'=>array(
 			'resources'=>array(
 				'Person'=>array(
             		'site'=>'http://api.aRESTservice.com',
@@ -32,13 +33,13 @@ and look for the category "ext.EActiveResource"
             		'fileextension'=>'.json',
        		)),
        		'cacheId'=>'SomeCacheComponent')
+       		
 4.) Now create a class extending EActiveResource like this (don't forget the model() function!):
 
 ##QUICK OVERVIEW:
 
 ~~~
-[php]
-<php
+
 class Person extends EActiveResource
 {
 
@@ -50,7 +51,7 @@ class Person extends EActiveResource
 ?>
 ~~~
 ~~~
-[php]
+
 $person=Person::model()->findById(1); //sends GET 'http://api.aRESTservice.com/people/1.json'
 $person->name='Haensel'; //dynamically sets an attribute. No 'safe' rule is needed. If you want to set attributes according to your rules() array (like you would with CActiveResource) use $person->setAttributes(array('name'=>'Haensel'))
 $person->save(); //Updates the resource because it is obvisiouly not a new resource (found by a finder method) => PUT request to http://api.aRESTservice.com/people/1 with data '{'name':'Haensel'}'
@@ -67,8 +68,7 @@ $person->save(); // POST request to http://api.aRESTservice.com/people with data
 add the rules() function to your model
 
 ~~~
-[php]
-<?php
+
 class Person extends EActiveResource
 {
 
@@ -88,7 +88,6 @@ class Person extends EActiveResource
 ?>
 ~~~
 ~~~
-[php]
 $person=new Person;
 $person->setAttributes(array(
 	'name'=>'Haensel',
