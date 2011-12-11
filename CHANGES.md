@@ -4,7 +4,9 @@
 
 ###1. Introducing EActiveResourceConnection 
 Instead of defining the rest() array within the EActiveResource model all configurations are now made within the Yii config using the "activeresource" application component.
-Example: 'activeresource'=>array(
+Example: 
+
+        'activeresource'=>array(
 			'resources'=>array(
 				'MyClassName'=>array(
             		'site'=>'http://api.aRESTservice.com',
