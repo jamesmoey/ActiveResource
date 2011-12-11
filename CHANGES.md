@@ -1,5 +1,36 @@
 #Changes:
 
+##Version 0.4 (not backwards compatible!):
+
+###1. Introducing EActiveResourceConnection 
+Instead of defining the rest() array within the EActiveResource model all configurations are now made within the Yii config using the "activeresource" application component.
+Example: 'activeresource'=>array(
+			'resources'=>array(
+				'MyClassName'=>array(
+            		'site'=>'http://api.aRESTservice.com',
+            		'resource'=>'people',
+            		'contenttype'=>'application/json',
+            		'accepttype'=>'application/json',
+            		'fileextension'=>'.json',
+       		)),
+       		'cacheId'=>'SomeCacheComponent')
+       		
+The rest() method still exists, but retrieves the configuration array from the 'activeresource' component now. Feel free to overwrite this method if you want to create some customized rest configurations
+       		
+###2. Caching
+Version 0.4 now enables caching of responses. Example:
+~~~
+[php]
+		MyModel::model()->cache(10)->findById(1);
+~~~
+will cache the response of the service for 10 seconds. The syntax is the same as with CActiveRecord, so you can set dependencies (no CDbCacheDependency for obvious reasons) and query count.
+
+###3. Custom headers
+Custom headers now fully replace standard headers so 'contenttype' and 'accepttype' as defined in the config will be ignored and will have to be set manually in such a case
+
+###4. sendRequest method moved from EActiveResource to EActiveResourceConnection
+The idea is to provide better seperation between the model and the connection layer
+
 ##Version 0.3 (not backwards compatible!):
 
 ###1. Fully object oriented approach for requests/responses 

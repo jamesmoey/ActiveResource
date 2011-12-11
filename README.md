@@ -21,7 +21,18 @@ and look for the category "ext.EActiveResource"
 
 1.) Add the extension to Yii by placing it in your application's extension folder (for example '/protected/extensions')
 2.) Edit your applications main.php config file and add 'application.extensions.EActiveResource.*' to your import definitions
-3.) Now create a class extending EActiveResource like this (don't forget the model() function!):
+3.) Add the configuration for your resources to the main config
+	'activeresource'=>array(
+			'resources'=>array(
+				'Person'=>array(
+            		'site'=>'http://api.aRESTservice.com',
+            		'resource'=>'people',
+            		'contenttype'=>'application/json',
+            		'accepttype'=>'application/json',
+            		'fileextension'=>'.json',
+       		)),
+       		'cacheId'=>'SomeCacheComponent')
+4.) Now create a class extending EActiveResource like this (don't forget the model() function!):
 
 ##QUICK OVERVIEW:
 
@@ -35,18 +46,6 @@ class Person extends EActiveResource
     {
         return parent::model($className);
     }
-
-    public function rest()
-    {
-        return array(
-            'site'=>'http://api.aRESTservice.com',
-            'resource'=>'people',
-            'contenttype'=>'application/json',
-            'accepttype'=>'application/json',
-            'fileextension'=>'.json',
-        );
-    }
-    
 }
 ?>
 ~~~
@@ -85,18 +84,6 @@ class Person extends EActiveResource
     		array('gender','numerical');
     	);
     }
-
-    public function rest()
-    {
-        return array(
-            'site'=>'http://api.aRESTservice.com',
-            'resource'=>'people',
-            'contenttype'=>'application/json',
-            'accepttype'=>'application/json',
-            'fileextension'=>'.json',
-        );
-    }
-    
 }
 ?>
 ~~~

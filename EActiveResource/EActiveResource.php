@@ -17,6 +17,7 @@ abstract class EActiveResource extends CModel
     const IS_MANY='IS_MANY';
     
     private static $_models=array();
+    private static $_connection;
     
     private $_md;                           // The metadata object for this resource (e.g.: field names, default values)
 
@@ -53,6 +54,24 @@ abstract class EActiveResource extends CModel
                     return $this->_md;
             else
                     return $this->_md=self::model(get_class($this))->_md;
+    }
+    
+    /**
+     * Returns the EactiveResourceConnection used to talk to the service.
+     * @return EActiveResourceConnection The connection component as pecified in the config
+     */
+    public function getConnection()
+    {
+        if(isset(self::$_connection))
+                return self::$_connection;
+        else
+        {
+            self::$_connection=Yii::app()->getComponent('activeresource');
+            if(self::$_connection instanceof EActiveResourceConnection)
+                return self::$_connection;
+            else
+                throw new EActiveResourceException('No "activeresource" component specified!');
+        }
     }
 
     /**
@@ -91,13 +110,7 @@ abstract class EActiveResource extends CModel
      */
     public function rest()
     {
-        return array(
-            'site'=>'http://localhost:port',
-            'resource'=>'resourcename',
-            'idProperty'=>'id',
-            'contenttype'=>'application/json',
-            'accepttype'=>'application/json',
-        );
+        return $this->getConnection()->getResourceConfig(get_class($this));
     }
 
     /**
@@ -306,6 +319,12 @@ abstract class EActiveResource extends CModel
                     $model->attachBehaviors($model->behaviors());
                     return $model;
             }
+    }
+    
+    public function cache($duration, $dependency=null, $queryCount=1)
+    {
+            $this->getConnection()->cache($duration, $dependency, $queryCount);
+            return $this;
     }
 
     /**
@@ -1036,7 +1055,7 @@ abstract class EActiveResource extends CModel
         if($this->getFileExtension())
             $uri.=$this->getFileExtension();
         
-        return $this->sendRequest($uri, EActiveResourceRequest::METHOD_GET,$customHeader);
+        return $this->getConnection()->sendRequest($uri, EActiveResourceRequest::METHOD_GET,null,$customHeader,$this->getContentType(),$this->getAcceptType());
     }
 
     /**
@@ -1046,7 +1065,7 @@ abstract class EActiveResource extends CModel
      */
     public function customGetRequest($uri,$customHeader=array())
     {
-        return $this->sendRequest($uri,EActiveResourceRequest::METHOD_GET,$customHeader);
+        return $this->getConnection()->sendRequest($uri,EActiveResourceRequest::METHOD_GET,null,$customHeader,$this->getContentType(),$this->getAcceptType());
     }
 
     /**
@@ -1068,7 +1087,7 @@ abstract class EActiveResource extends CModel
             $uri.='/'.$id;
         if($additional)
             $uri.=$additional;
-        return $this->sendRequest($uri,EActiveResourceRequest::METHOD_PUT,$customHeader,$data);
+        return $this->getConnection()->sendRequest($uri,EActiveResourceRequest::METHOD_PUT,$data,$customHeader,$this->getContentType(),$this->getAcceptType());
     }
 
     /**
@@ -1080,7 +1099,7 @@ abstract class EActiveResource extends CModel
      */
     public function customPutRequest($uri,$data,$customHeader=array())
     {
-        return $this->sendRequest($uri,EActiveResourceRequest::METHOD_PUT,$customHeader,$data);
+        return $this->getConnection()->sendRequest($uri,EActiveResourceRequest::METHOD_PUT,null,$customHeader,$this->getContentType(),$this->getAcceptType());
     }
 
     /**
@@ -1102,7 +1121,7 @@ abstract class EActiveResource extends CModel
             $uri.='/'.$id;
         if($additional)
             $uri.=$additional;
-        return $this->sendRequest($uri,EActiveResourceRequest::METHOD_POST,$customHeader,$data);
+        return $this->getConnection()->sendRequest($uri,EActiveResourceRequest::METHOD_POST,$data,$customHeader,$this->getContentType(),$this->getAcceptType());
     }
 
     /**
@@ -1112,9 +1131,9 @@ abstract class EActiveResource extends CModel
      * @param array $customHeader A custom header
      * @return EActiveResourceResponse The response object
      */
-    public function customPostRequest($uri,$data,$customHeader=array())
+    public function customPostRequest($uri,$data=null,$customHeader=array())
     {
-        return $this->sendRequest($uri,EActiveResourceRequest::METHOD_POST,$customHeader,$data);
+        return $this->getConnection()->sendRequest($uri,EActiveResourceRequest::METHOD_POST,$data,$customHeader,$this->getContentType(),$this->getAcceptType());
     }
 
     public function deleteRequest($id=null,$additional=null,$customHeader=array())
@@ -1128,7 +1147,7 @@ abstract class EActiveResource extends CModel
             $uri.='/'.$id;
         if($additional)
             $uri.=$additional;
-        return $this->sendRequest($uri,EActiveResourceRequest::METHOD_DELETE,$customHeader);
+        return $this->getConnection()->sendRequest($uri,EActiveResourceRequest::METHOD_DELETE,null,$customHeader,$this->getContentType(),$this->getAcceptType());
     }
 
     /**
@@ -1139,33 +1158,9 @@ abstract class EActiveResource extends CModel
      */
     public function customDeleteRequest($uri,$customHeader=array())
     {
-        return $this->sendRequest($uri,EActiveResourceRequest::METHOD_DELETE,$customHeader);
+        return $this->getConnection()->sendRequest($uri,EActiveResourceRequest::METHOD_DELETE,null,$customHeader,$this->getContentType(),$this->getAcceptType());
     }
-
-    /**
-     * Creates a new request, sends and receives the data.
-     * @param string $uri The uri this request is sent to.
-     * @param string $method The method (GET,PUT,POST,DELETE)
-     * @param array $customHeader A customHeader to be sent
-     * @param array $data The data to be sent as array
-     * @return EActiveResourceResponse The response object
-     */
-    protected function sendRequest($uri,$method,$customHeader,$data=null)
-    {
-        $request=new EActiveResourceRequest;
-
-        $request->setUri($uri);
-        $request->setMethod($method);
-        $request->setData($data);
-        $request->setContentType($this->getContentType());
-        $request->setAcceptType($this->getAcceptType());
-        $request->setCustomHeader($customHeader);
-
-        $response=$request->run();
-                
-        return $response;
-
-    }
+            
 }
 
 ?>

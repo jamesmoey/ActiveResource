@@ -22,7 +22,7 @@ class EActiveResourceRequest
         private $_contentType;
         private $_acceptType;
         private $_timeout=30;
-        
+                
         private $_headerString="";
 
         const APPLICATION_JSON  ='application/json';
@@ -44,7 +44,7 @@ class EActiveResourceRequest
             if( !function_exists('curl_init') )
                 throw new EActiveResourceRequestException( Yii::t('EActiveResourceRequest', 'You must have PHP curl enabled in order to use this extension.') );
 	}
-
+                
          /**
         * Setter
         * @set the option
@@ -148,10 +148,12 @@ class EActiveResourceRequest
             if(isset($this->_header))
                     return $this->_header;
             
-            $standardHeader=$this->getStandardHeader();
             $customHeader=$this->getCustomHeader();
+            if(!empty($customHeader))
+                return $customHeader;
+            else
+                return $this->getStandardHeader();
             
-            return CMap::mergeArray($standardHeader,$customHeader);
         }
         
         /**
@@ -344,7 +346,7 @@ class EActiveResourceRequest
         {            
                 if(is_null($this->getUri()))
                     throw new EActiveResourceRequestException(Yii::t('EActiveResourceRequest', 'No uri set') );
-
+                
                 $this->ch = curl_init();
                                                 
                 $this->setOption(CURLOPT_URL,$this->getUri());
@@ -363,10 +365,11 @@ class EActiveResourceRequest
                     Yii::trace('Sending '.$this->getMethod().' request to '.$this->getUri().' without data, accepting: '.$this->getAcceptType(),'ext.EActiveResource.request');
                 
                 $response=new EActiveResourceResponse(curl_exec($this->ch),curl_getinfo($this->ch),$this->_headerString,$this->getAcceptType());
-                
+                                
                 curl_close($this->ch);
+                
                 return $response;
       }
-
+      
 }
 ?>
