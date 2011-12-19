@@ -35,35 +35,7 @@ class EActiveResourceMetaData
                     if($property->defaultValue!==null)
                             $this->attributeDefaults[$name]=$property->defaultValue;
             }
-            
-            /*
-            if($model instanceof ENeo4jNode)
-                foreach($model->relations() as $name=>$config)
-                        $this->addRelation($name,$config);
-             * 
-             */
     }
-    /*
-    public function addRelation($name,$config)
-        {
-                if(isset($config[0],$config[1],$config[2]))
-                        $this->relations[$name]=$config;
-                else
-                        throw new EActiveResourceException(Yii::t('ext.','Active resource "{class}" has an invalid configuration for relation "{relation}".', array('{class}'=>get_class($this->_model),'{relation}'=>$name)));
-        }
-    
-    public function setProperties($properties)
-    {
-        foreach($properties as $property=>$propertyConfig)
-            {
-               $propertyObject=new EActiveResourceProperty;
-               foreach($propertyConfig as $parameter=>$parameterValue) 
-                   $propertyObject->$parameter=$parameterValue;
-
-               $this->properties[$property]=$propertyObject;
-            }
-    }
-     * */
     
     public function getSchema()
     {
