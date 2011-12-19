@@ -11,57 +11,64 @@ class EActiveResourceMetaData
 {
 
     public $properties;     //The properties of the resource according to the schema configuration
+    public $relations=array();
+    
     public $attributeDefaults=array();
-
-    public $schema; 
-    public $site;
-    public $resource;
-    public $container;
-    public $embedded;
-    public $fileextension;
-    public $idProperty;
-    public $contenttype;
-    public $accepttype;
-
-    public $username;
-    public $password;
-
+    
+    public $schema;
 
     private $_model;
 
     public function __construct($model)
     {
-        $this->_model=$model;
+            $this->_model=$model;
 
-        $this->schema=null;
-        foreach($model->rest() as $option=>$value)
-                if(property_exists($this, $option))
-                        $this->$option=$value;
+            if(($resourceConfig=$model->rest())===null)
+                    throw new EActiveResourceException(Yii::t('ext.EActiveResource','The resource "{resource}" configuration could not be found in the activeresource configuration.',array('{resource}'=>get_class($model))));
+           
+            $this->schema=new EActiveResourceSchema($resourceConfig,$model->properties());
+                                                
+            $this->properties=$this->schema->properties;
 
-        $this->properties=$this->getProperties();
-
+            foreach($this->properties as $name=>$property)
+            {
+                    if($property->defaultValue!==null)
+                            $this->attributeDefaults[$name]=$property->defaultValue;
+            }
+            
+            /*
+            if($model instanceof ENeo4jNode)
+                foreach($model->relations() as $name=>$config)
+                        $this->addRelation($name,$config);
+             * 
+             */
     }
-
-    /**
-     * Define the attributes of the model. These are set to all public properties by default.
-     * Override this method if you want to allow specific properties only.
-     * @return an array of properties
-     */
-    protected function getProperties()
+    /*
+    public function addRelation($name,$config)
+        {
+                if(isset($config[0],$config[1],$config[2]))
+                        $this->relations[$name]=$config;
+                else
+                        throw new EActiveResourceException(Yii::t('ext.','Active resource "{class}" has an invalid configuration for relation "{relation}".', array('{class}'=>get_class($this->_model),'{relation}'=>$name)));
+        }
+    
+    public function setProperties($properties)
     {
-        $names=array();
-        //add dynamic attributes if this is a schemaless resource
-        if($this->schema==null)
-            foreach($this->_model->getAttributesArray() as $attribute=>$value)
-                $names[$attribute]=$value;
-        else
-            foreach($this->schema as $property=>$params)
-                if($params[0]=='IS_PROPERTY')
-                    $names[$property]=$params[1];
+        foreach($properties as $property=>$propertyConfig)
+            {
+               $propertyObject=new EActiveResourceProperty;
+               foreach($propertyConfig as $parameter=>$parameterValue) 
+                   $propertyObject->$parameter=$parameterValue;
 
-        return $this->properties=$names;
+               $this->properties[$property]=$propertyObject;
+            }
     }
-
+     * */
+    
+    public function getSchema()
+    {
+        return $this->schema;
+    }
 }
 
 ?>

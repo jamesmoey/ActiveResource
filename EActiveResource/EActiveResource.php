@@ -1,6 +1,6 @@
 <?php
 /**
- * @author Johannes "Haensel" Bauer
+ * @author Johannes "Haensel" Bauer <thehaensel@gmail.com>
  * @since version 0.1
  */
 
@@ -11,20 +11,14 @@
  */
 abstract class EActiveResource extends CModel
 {
-
-    //const IS_PROPERTY='IS_PROPERTY';
-    const IS_ONE='IS_ONE';
-    const IS_MANY='IS_MANY';
+    protected static $_models=array();
+    protected static $_connection;
     
-    private static $_models=array();
-    private static $_connection;
+    protected $_md;                           // The metadata object for this resource (e.g.: field names, default values)
+
+    protected $_new=false;
+    protected $_attributes=array();
     
-    private $_md;                           // The metadata object for this resource (e.g.: field names, default values)
-
-    private $_new;
-    private $_attributes=array();
-    private $_embedded=array();
-
     /**
      * Constructor.
      * @param string $scenario scenario name. See {@link CModel::scenario} for more details about this parameter.
@@ -72,16 +66,7 @@ abstract class EActiveResource extends CModel
             else
                 throw new EActiveResourceException('No "activeresource" component specified!');
         }
-    }
-
-    /**
-     * This method is used in EActiveMetaData to recive the attributes of the object without the complex logic of the CModel getAttributes() function
-     * @return array All attributes of this model.
-     */
-    public function getAttributesArray()
-    {
-        return $this->_attributes;
-    }
+    }     
 
     /**
      * Use this function to define the communication between this class and the REST service.
@@ -99,18 +84,21 @@ abstract class EActiveResource extends CModel
      * <b>accepttype</b>: Defines the accept type send via HTTP header. It is also used to convert the response back to a php readable format like an array of attributes. Define application/json to automatically convert JSON responses to PHP arrays.
      * <p>
      * <b>fileExtension</b>: This is used to append something like '.json' to every GET request. This can be useful if the service doesn't respect headers but uses a formatextension to know what type of response you are looking for. Always remember to use a '.' in front of the extension!
-     * <p>
-     * <b>embedded</b>: Some services respond with an complex object containing other resources (like Twitter does by also returning user objects when requesting statuses). If you know that a certain field (like 'user') contains another object that you defined already defined as a subclass of EActiveResource than use the following syntax:
-     * <ul>
-     * <li>array('user'=>array(self::IS_ONE,'MyUserModelClassName')), --> if user is always a single user object
-     * <li>array('user'=>array(self::IS_MANY,'MyUserModelClassName')) --> if user contains an ARRAY of users
      * </ul>
-     * This will cause the class to automatically load the User object/objects. It enables you to use magic getters like: $tweet->user->name where tweet is your main model object and user is a ActiveResource contained within a tweet response.
      * @return array The configuration of this classed as used by EActiveResourceMetaData.
      */
     public function rest()
     {
         return $this->getConnection()->getResourceConfiguration(get_class($this));
+    }
+    
+    /**
+     * Defines the properties and their characteristics to enable a flexible schema definition
+     * @return array An array containing information about every property (datatype, allowNull etc.)
+     */
+    public function properties()
+    {
+        return array();
     }
 
     /**
@@ -119,7 +107,7 @@ abstract class EActiveResource extends CModel
      */
     public function getContentType()
     {
-        return $this->getMetaData()->contenttype;
+        return $this->getMetaData()->getSchema()->contenttype;
     }
 
     /**
@@ -128,7 +116,7 @@ abstract class EActiveResource extends CModel
      */
     public function getAcceptType()
     {
-        return $this->getMetaData()->accepttype;
+        return $this->getMetaData()->getSchema()->accepttype;
     }
 
     /**
@@ -137,7 +125,7 @@ abstract class EActiveResource extends CModel
      */
     public function getSite()
     {
-        return $this->getMetaData()->site;
+        return $this->getMetaData()->getSchema()->site;
     }
 
     /**
@@ -146,7 +134,7 @@ abstract class EActiveResource extends CModel
      */
     public function getResource()
     {
-        return $this->getMetaData()->resource;
+        return $this->getMetaData()->getSchema()->resource;
     }
 
     /**
@@ -155,7 +143,7 @@ abstract class EActiveResource extends CModel
      */
     public function getFileExtension()
     {
-        return $this->getMetaData()->fileextension;
+        return $this->getMetaData()->getSchema()->fileextension;
     }
 
     /**
@@ -164,16 +152,16 @@ abstract class EActiveResource extends CModel
      */
     public function getContainer()
     {
-        return $this->getMetaData()->container;
+        return $this->getMetaData()->getSchema()->container;
     }
-
+    
     /**
-     * Returns the embedded fields as specified within Configuration()
+     * Returns the container field as specified within Configuration()
      * @return string
      */
-    public function getEmbedded()
+    public function getMultiContainer()
     {
-        return $this->getMetaData()->embedded;
+        return $this->getMetaData()->getSchema()->multiContainer;
     }
 
     /**
@@ -182,7 +170,7 @@ abstract class EActiveResource extends CModel
      */
     public function idProperty()
     {
-        return $this->getMetaData()->idProperty;
+        return $this->getMetaData()->getSchema()->idProperty;
     }
 
     /**
@@ -239,14 +227,10 @@ abstract class EActiveResource extends CModel
                     return $this->_attributes[$name];
             else if(isset($this->getMetaData()->properties[$name]))
                     return null;
-            else if(isset($this->_embedded[$name]))
-                    return $this->_embedded[$name];
-            else if(!$this->getMetaData()->schema)
-                    return null;
             else
                     return parent::__get($name);
     }
-
+    
     /**
      * PHP setter magic method.
      * This method is overridden so that AR attributes can be accessed like properties.
@@ -256,9 +240,7 @@ abstract class EActiveResource extends CModel
     public function __set($name,$value)
     {
             if($this->setAttribute($name,$value)===false)
-            {
-                    parent::__set($name,$value);
-            }
+                parent::__set($name,$value);
     }
 
     /**
@@ -306,7 +288,7 @@ abstract class EActiveResource extends CModel
      * </pre>
      *
      * @param string $className active resource class name.
-     * @return EAR active resource model instance.
+     * @return EActiveResource active resource model instance.
      */
     public static function model($className=__CLASS__)
     {
@@ -321,6 +303,13 @@ abstract class EActiveResource extends CModel
             }
     }
     
+    /**
+     * Enables caching for requests
+     * @param integer $duration The cache duration in seconds
+     * @param CCacheDependency $dependency The cache dependency
+     * @param integer $queryCount The number of requests to be cached (defaults to 1)
+     * @return EActiveResource The model itself to enable chaining
+     */
     public function cache($duration, $dependency=null, $queryCount=1)
     {
             $this->getConnection()->cache($duration, $dependency, $queryCount);
@@ -338,7 +327,7 @@ abstract class EActiveResource extends CModel
     }
 
     /**
-     * Overrides the CModel method in order to provide schemaless assignments.
+     * Sets the  attributes of this model
      * @param array $values
      * @param boolean $safeOnly
      */
@@ -346,28 +335,14 @@ abstract class EActiveResource extends CModel
     {
         if(!is_array($values))
             return;
-        if(!$this->getMetaData()->schema) //schemaless variant
+       
+        $attributes=array_flip($safeOnly ? $this->getSafeAttributeNames() : $this->attributeNames());
+        foreach($values as $name=>$value)
         {
-            if($safeOnly)
-            {
-                $attributes=array_flip($this->getSafeAttributeNames());
-                foreach($attributes as $name=>$value)
-                    if(isset($values[$name])) $this->setAttribute($name,$values[$name]);
-            }
-            else
-                foreach($values as $name=>$value)
-                    $this->setAttribute($name,$value);
-        }
-        else //classic variant like in CModel
-        {
-            $attributes=array_flip($safeOnly ? $this->getSafeAttributeNames() : $this->attributeNames());
-            foreach($values as $name=>$value)
-            {
-                if(isset($attributes[$name]))
-                    $this->$name=$value;
-                else if($safeOnly)
-                    $this->onUnsafeAttribute($name,$value);
-            }
+            if(isset($attributes[$name]))
+                $this->$name=$value;
+            else if($safeOnly)
+                $this->onUnsafeAttribute($name,$value);
         }
     }
 
@@ -400,8 +375,8 @@ abstract class EActiveResource extends CModel
     {
             if(property_exists($this,$name))
                     $this->$name=$value;
-            else if(isset($this->getMetaData()->properties[$name]) || !$this->getMetaData()->schema)
-                    $this->_attributes[$name]=$value;
+            else if(isset($this->getMetaData()->properties[$name]))
+                    $this->_attributes[$name]=$this->getMetaData()->properties[$name]->typecast($value);
             else
                     return false;
             return true;
@@ -418,7 +393,7 @@ abstract class EActiveResource extends CModel
     {
             $attributes=$this->_attributes;
             
-            foreach($this->getMetaData()->properties as $name=>$type)
+            foreach($this->getMetaData()->properties as $name=>$property)
             {
                     if(property_exists($this,$name))
                             $attributes[$name]=$this->$name;
@@ -441,6 +416,23 @@ abstract class EActiveResource extends CModel
                 return $attributes;
             
     }
+    
+    /**
+     * Returns the text label for the specified attribute.
+     * This method overrides the parent implementation by supporting
+     * returning the label defined in relational object.
+     * @param string $attribute the attribute name
+     * @return string the attribute label
+     * @since 0.5
+     */
+    public function getAttributeLabel($attribute)
+    {
+            $labels=$this->attributeLabels();
+            if(isset($labels[$attribute]))
+                    return $labels[$attribute];
+            else
+                    return $this->generateAttributeLabel($attribute);
+    }
 
     /**
      * Saves the current resource.
@@ -455,7 +447,7 @@ abstract class EActiveResource extends CModel
      * validation errors.
      *
      * If the resource is saved via insertion, its {@link isNewRecord} property will be
-     * set false, and its {@link scenario} property will be set to be 'update'.
+     * set to false, and its {@link scenario} property will be set to be 'update'.
      *
      * @param boolean $runValidation whether to perform validation before saving the resource.
      * If the validation fails, the resource will not be saved to database.
@@ -717,7 +709,7 @@ abstract class EActiveResource extends CModel
             Yii::trace(get_class($this).'.create()','ext.EActiveResource');
 
             $response=$this->postRequest(null,$this->getAttributes());
-            $returnedmodel=$this->populateRecord($response);
+            $returnedmodel=$this->populateRecord($response->getData());
 
             if($returnedmodel)
             {
@@ -832,7 +824,7 @@ abstract class EActiveResource extends CModel
     public function refresh()
     {
             Yii::trace(get_class($this).'.refresh()','ext.EActiveResource');
-            if(!$this->getIsNewRecord() && ($resource=$this->findById($this->getId()))!==null)
+            if(!$this->getIsNewResource() && ($resource=$this->findById($this->getId()))!==null)
             {
                     $this->_attributes=array();
                     foreach($this->getMetaData()->properties as $name=>$value)
@@ -870,6 +862,17 @@ abstract class EActiveResource extends CModel
             $response=$this->getRequest($id);
             return $this->populateRecord($response->getData());
     }
+    
+    /**
+     * Sends a direct GET request to the resource without an id. Should return all resources
+     * @return array An array of EActiveResources if they exist. An empty array if none are found (or Exception if request is invalid).
+     */
+    public function findAll()
+    {
+            Yii::trace(get_class($this).'.findAll()','ext.EActiveResource');
+            $response=$this->getRequest();
+            return $this->populateRecords($response->getData());
+    }
 
     /**
      * Updates resources with the specified id
@@ -881,6 +884,7 @@ abstract class EActiveResource extends CModel
     {
             Yii::trace(get_class($this).'.updateById()','ext.EActiveResource');
             $response=$this->putRequest($id,$attributes);
+            return true;
     }
 
     /**
@@ -891,6 +895,7 @@ abstract class EActiveResource extends CModel
     {
             Yii::trace(get_class($this).'.deleteById()','ext.EActiveResource');
             $response=$this->deleteRequest($id);
+            return true;
     }
 
     /**
@@ -904,18 +909,9 @@ abstract class EActiveResource extends CModel
      */
     public function populateRecord($attributes,$callAfterFind=true)
     {
-        if(is_array($attributes) && array_key_exists($this->getContainer(),$attributes))
-        {
+        if(is_array($attributes) && isset($attributes[$this->getContainer()]))
                 $attributes=$this->extractDataFromResponse($attributes);
-                Yii::trace('Container field found: '.$this->getContainer().'. Repopulating!','ext.EActiveResource');
-        }
 
-        //if(isset($attributes[$this->getContainer()]))
-        //{
-        //            Yii::trace('Container field found: '.$this->getContainer().'. Repopulating!','ext.EActiveResource');
-        //            //this array position is the actual object so try again
-        //            return $this->populateRecord($attributes[$this->getContainer()]);
-        //}
         if ($attributes!==false && is_array($attributes))
         {
                 $resource=$this->instantiate($attributes);
@@ -923,55 +919,10 @@ abstract class EActiveResource extends CModel
                 $resource->init();
                 foreach($attributes as $name=>$value)
                 {
-                        if(property_exists($resource,$name))
-                                $resource->$name=$value;
-                        //CHECK IF THERE IS SCHEMA
-                        else if(!$this->getMetaData()->schema)
-                        {
-                            //THERE IS NO SCHEMA, SO CHECK FOR EMBEDDED MODELS FIRST
-                            if(isset($this->getMetaData()->embedded[$name]))
-                            {
-                                    if($this->getMetaData()->embedded[$name][0]==self::IS_ONE)
-                                    {
-                                        Yii::trace('Populating instance of ' .get_class($this). ': Position ['.$name.'] contains an object of class ' .$this->getMetaData()->embedded[$name][1],'ext.EActiveResource');
-                                        $class=$this->getMetaData()->embedded[$name][1];
-                                        $object=self::model($class);
-                                        $resource->_embedded[$name]=$object->populateRecord($value);
-                                    }
-                                    else if($this->getMetaData()->embedded[$name][0]==self::IS_MANY)
-                                    {
-                                        Yii::trace('Populating instance of ' .get_class($this). ': Position ['.$name.'] contains multiple objects of class ' .$this->getMetaData()->embedded[$name][1],'ext.EActiveResource');
-                                        $class=$this->getMetaData()->embedded[$name][1];
-                                        $object=self::model($class);
-                                        $resource->_embedded[$name]=$object->populateRecords($value);
-                                    }
-                            }
-                            else //IF ALL EMBEDDED MODLES ARE CHECKED, ASSIGN THE REST OF THE VALUES TO THE ATTRIBUTES ARRAY BECAUSE WE ARE COMPLETELY SCHEMALESS
-                                $resource->_attributes[$name]=$value;                                    
-                        }
-                        else
-                        //////WE HAVE A SCHEMA DEFINED SO ASSIGN THE ATTRIBUTES ACCORDING TO THE DEFINED PROPERTIES
-                        {
-                            if((isset($this->getMetaData()->properties[$name])))
-                                $resource->_attributes[$name]=$value;
-                            else if(isset($this->getMetaData()->embedded[$name]))
-                            {       if($this->getMetaData()->embedded[$name][0]==self::IS_ONE)
-                                    {
-                                        Yii::trace('Populating instance of ' .get_class($this). ': Position ['.$name.'] contains an object of class ' .$this->getMetaData()->embedded[$name][1],'ext.EActiveResource');
-                                        $class=$this->getMetaData()->embedded[$name][1];
-                                        $object=self::model($class);
-                                        $resource->_embedded[$name]=$object->populateRecord($value);
-                                    }
-                                    else if($this->getMetaData()->embedded[$name][0]==self::IS_MANY)
-                                    {
-                                        Yii::trace('Populating instance of ' .get_class($this). ': Position ['.$name.'] contains multiple objects of class ' .$this->getMetaData()->embedded[$name][1],'ext.EActiveResource');
-                                        $class=$this->getMetaData()->embedded[$name][1];
-                                        $object=self::model($class);
-                                        $resource->_embedded[$name]=$object->populateRecords($value);
-                                    }
-                            }
-                        }
-
+                    if(property_exists($resource,$name))
+                        $resource->$name=$value;
+                    else if((isset($this->getMetaData()->properties[$name])))
+                        $resource->_attributes[$name]=$this->getMetaData()->properties[$name]->typecast($value);
                 }
                 $resource->attachBehaviors($resource->behaviors());
                 if($callAfterFind)
@@ -993,14 +944,14 @@ abstract class EActiveResource extends CModel
      */
     public function populateRecords($data,$callAfterFind=true,$index=null)
     {
+            if(isset($data[$this->getMultiContainer()]))
+                return $this->populateRecords($data[$this->getMultiContainer()],$callAfterFind,$index);
+            
             $resources=array();
-
-            if($this->getContainer())
-                    $data=$this->extractDataFromResponse($data);
-
+                        
             foreach($data as $attributes)
             {
-                    if(($resource=$this->populateRecord($attributes,$callAfterFind))!==null)
+                    if(($resource=$this->populateRecord($attributes,$callAfterFind,$index))!==null)
                     {
                             if($index===null)
                                     $resources[]=$resource;
@@ -1013,11 +964,12 @@ abstract class EActiveResource extends CModel
     }
 
     /**
-     * This method tries to extract a subarray within an response that contains a field that is recognized as container field (as specified within Configuration())
+     * This method extracts a subarray within an response that contains a field that is recognized as container field
+     * (as specified within the resource configuration). This is internallyused by populateRecord()
      * @param array $array The array containing the data
      * @return array The array only containing the relevant fields.
      */
-    public function extractDataFromResponse($array)
+    protected function extractDataFromResponse($array)
     {
             if (is_array($array))
             {
@@ -1059,16 +1011,6 @@ abstract class EActiveResource extends CModel
     }
 
     /**
-     * Send a custom GET request if the standard version isn't doing it. But you have to define the whole uri by yourself
-     * @param string $uri The whole uri
-     * @return EActiveResourceResponse The response object
-     */
-    public function customGetRequest($uri,$customHeader=array())
-    {
-        return $this->getConnection()->sendRequest($uri,EActiveResourceRequest::METHOD_GET,null,$customHeader,$this->getContentType(),$this->getAcceptType());
-    }
-
-    /**
      * Send a PUT request to this resource.
      * @param string $id The id of the resource. This is optional. Set to null if you want to send a request like PUT 'http://iamaRESTapi/apiversion/people'
      * @param array $data An array containing the data to be sent to the service. Defaults to the attributes of this model as an associative array.
@@ -1088,18 +1030,6 @@ abstract class EActiveResource extends CModel
         if($additional)
             $uri.=$additional;
         return $this->getConnection()->sendRequest($uri,EActiveResourceRequest::METHOD_PUT,$data,$customHeader,$this->getContentType(),$this->getAcceptType());
-    }
-
-    /**
-     * Send a custom PUT request if the standard version isn't doing it. But you have to define the whole uri by yourself
-     * @param string $uri The whole uri
-     * @params array $data The data to be sent
-     * @param array $customHeader A custom header
-     * @return EActiveResourceResponse The response object
-     */
-    public function customPutRequest($uri,$data,$customHeader=array())
-    {
-        return $this->getConnection()->sendRequest($uri,EActiveResourceRequest::METHOD_PUT,null,$customHeader,$this->getContentType(),$this->getAcceptType());
     }
 
     /**
@@ -1125,18 +1055,13 @@ abstract class EActiveResource extends CModel
     }
 
     /**
-     * Send a custom POST request if the standard version isn't doing it. But you have to define the whole uri by yourself
-     * @param string $uri The whole uri
-     * @param array $data The data to be sent
+     * Send a DELETE request to this resource.
+     * @param string $id The id of the resource
+     * @param string $additional Some requests need some additional uri extensions like modifying all people that were fired. POST 'http://iamaRESTapi/apiversion/people/fired'. Set to '/fired' if you want to send a request like that
      * @param array $customHeader A custom header
      * @return EActiveResourceResponse The response object
      */
-    public function customPostRequest($uri,$data=null,$customHeader=array())
-    {
-        return $this->getConnection()->sendRequest($uri,EActiveResourceRequest::METHOD_POST,$data,$customHeader,$this->getContentType(),$this->getAcceptType());
-    }
-
-    public function deleteRequest($id=null,$additional=null,$customHeader=array())
+    public function deleteRequest($id,$additional=null,$customHeader=array())
     {
         $uri='';
         if($this->getSite())
@@ -1148,19 +1073,7 @@ abstract class EActiveResource extends CModel
         if($additional)
             $uri.=$additional;
         return $this->getConnection()->sendRequest($uri,EActiveResourceRequest::METHOD_DELETE,null,$customHeader,$this->getContentType(),$this->getAcceptType());
-    }
-
-    /**
-     * Send a custom DELETE request if the standard version isn't doing it. But you have to define the whole uri by yourself
-     * @param string $uri The whole uri
-     * @param array $customHeader A custom header
-     * @return EActiveResourceResponse The response object
-     */
-    public function customDeleteRequest($uri,$customHeader=array())
-    {
-        return $this->getConnection()->sendRequest($uri,EActiveResourceRequest::METHOD_DELETE,null,$customHeader,$this->getContentType(),$this->getAcceptType());
-    }
-            
+    }            
 }
 
 ?>

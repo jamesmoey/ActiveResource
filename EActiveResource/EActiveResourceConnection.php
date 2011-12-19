@@ -73,7 +73,7 @@ class EActiveResourceConnection extends CApplicationComponent
             $cacheKey.=':'.$this->recursiveImplode('#',$data);
             if(($result=$cache->get($cacheKey))!==false)
             {
-                    Yii::trace('Respone found in cache','ext.EActiveResource.EActiveResourceConnection');
+                    Yii::trace('Response found in cache','ext.EActiveResource.EActiveResourceConnection');
                     return $result;
             }
         }

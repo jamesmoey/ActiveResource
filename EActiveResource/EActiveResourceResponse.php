@@ -40,7 +40,6 @@ class EActiveResourceResponse
      */
     public function getRawData()
     {
-        if(isset($this->_rawData))
             return $this->_rawData;
     }
     
@@ -50,7 +49,6 @@ class EActiveResourceResponse
      */
     public function getData()
     {
-        if(isset($this->_parsedData))
             return $this->_parsedData;
     }
     
@@ -60,7 +58,6 @@ class EActiveResourceResponse
      */
     public function getInfo()
     {
-        if(isset($this->_info))
             return $this->_info;
     }
     
@@ -70,7 +67,6 @@ class EActiveResourceResponse
      */
     public function getHeader()
     {
-        if(isset($this->_header))
             return $this->_header;
     }
     
