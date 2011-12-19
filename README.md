@@ -34,7 +34,7 @@ and look for the category "ext.EActiveResource"
        		)),
        		'cacheId'=>'SomeCacheComponent')
        		
-4.) Now create a class extending EActiveResource like this (don't forget the model() function!):
+4.) Now create a class extending EActiveResource like this (don't forget the model() function!) and define the properties and their datatypes:
 
 ##QUICK OVERVIEW:
 
@@ -46,6 +46,17 @@ class Person extends EActiveResource
     public static function model($className=__CLASS__)
     {
         return parent::model($className);
+    }
+    
+    public function properties()
+    {
+    	return array(
+    		'name'=>array('type'=>'string'),
+    		'surname'=>array('type'=>'string'),
+    		'gender'=>array('type'=>'string'),
+    		'married'=>array('type'=>'boolean'),
+    		'salary'=>array('type'=>'double')
+    	);
     }
 }
 ?>
