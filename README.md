@@ -23,7 +23,7 @@ and look for the category "ext.EActiveResource"
 2.) Edit your applications main.php config file and add 'application.extensions.EActiveResource.*' to your import definitions
 3.) Add the configuration for your resources to the main config
 
-	    'activeresource'=>array(
+	        'activeresource'=>array(
 			'resources'=>array(
 				'Person'=>array(
             		'site'=>'http://api.aRESTservice.com',
@@ -34,82 +34,87 @@ and look for the category "ext.EActiveResource"
        		)),
        		'cacheId'=>'SomeCacheComponent')
        		
-4.) Now create a class extending EActiveResource like this (don't forget the model() function!) and define the properties and their datatypes:
+4.) Now create a class extending EActiveResource like this (don't forget the model() function!):
 
 ##QUICK OVERVIEW:
 
 ~~~
 
-class Person extends EActiveResource
-{
+     class Person extends EActiveResource
+     {
+     /* The id that uniquely identifies a person. This attribute is not defined as a property      
+      * because we don't want to send it back to the service like a name, surname or gender etc.
+      */
+     public $id;
 
-    public static function model($className=__CLASS__)
-    {
-        return parent::model($className);
-    }
-    
-    public function properties()
-    {
-    	return array(
-    		'name'=>array('type'=>'string'),
-    		'surname'=>array('type'=>'string'),
-    		'gender'=>array('type'=>'string'),
-    		'married'=>array('type'=>'boolean'),
-    		'salary'=>array('type'=>'double')
-    	);
-    }
-}
-?>
+     public static function model($className=__CLASS__)
+     {
+         return parent::model($className);
+     }
+
+     /* Let's define some properties and their datatypes
+     public function properties()
+     {
+         return array(
+             'name'=>array('type'=>'string'),
+             'surname'=>array('type'=>'string'),
+             'gender'=>array('type'=>'string'),
+             'age'=>array('type'=>'integer'),
+             'married'=>array('type'=>'boolean'),
+             'salary'=>array('type'=>'double'),
+         );
+     }
+
+     /* Define rules as usual */
+     public function rules()
+     {
+         return array(
+             array('name,surname,gender,age,married,salary','safe'),
+             array('age','numerical','integerOnly'=>true),
+             array('married','boolean'),
+             array('salary','numerical')
+         );
+     }
+
+     /* Add some custom labels for forms etc. */
+     public function attributeLabels()
+     {
+         return array(
+             'name'=>'First name',
+             'surname'=>'Last name',
+             'salary'=>'Your monthly salary',
+         );
+     }
+ }
 ~~~
-~~~
 
-$person=Person::model()->findById(1); //sends GET 'http://api.aRESTservice.com/people/1.json'
-$person->name='Haensel'; //dynamically sets an attribute. No 'safe' rule is needed. If you want to set attributes according to your rules() array (like you would with CActiveResource) use $person->setAttributes(array('name'=>'Haensel'))
-$person->save(); //Updates the resource because it is obvisiouly not a new resource (found by a finder method) => PUT request to http://api.aRESTservice.com/people/1 with data '{'name':'Haensel'}'
-
-//creating a new Person
-
-$person = new Person; //no request
-$person->name='Haensel'; //no request, sets the attribute "name" to "Haensel" even if no 'safe' rule is set.
-$person->gender='m'; //no request, same as with name
-$person->save(); // POST request to http://api.aRESTservice.com/people with data '{'name';'Haensel','gender':'m'}'
-~~~
-//using validation rules
-
-add the rules() function to your model
+##Usage:
 
 ~~~
 
-class Person extends EActiveResource
-{
+    /* sends GET to http://api.example.com/person/1 and populates a single Person model*/
+    $person=Person::model()->findById(1);
 
-    public static function model($className=__CLASS__)
-    {
-        return parent::model($className);
-    }
-    
-    public function rules()
-    {
-    	return array(
-    		array('name','required');
-    		array('gender','numerical');
-    	);
-    }
-}
-?>
-~~~
-~~~
-$person=new Person;
-$person->setAttributes(array(
-	'name'=>'Haensel',
-	'gender'=>'m'
-));
-$person->save(); //validation fails, no POST request is sent to the service. You can get the error messages like you would with CActiveRecord (which uses the CModel methods getErrors()).
+    /* sends GET to http://api.example.com/person and populates Person models with the response */
+    $persons=Person::model()->findAll();
 
-$person=new Person;
-$person->setAttributes(array(
-	'name'=>'Haensel',
-	'gender'=>1
-));
-$person->save(); // VALIDATED. Sending POST request to http://api.aRESTservice.com/people with data '{'name':'Haensel','gender':1}'
-~~~
+    /* create a resource
+    $person=new Person;
+    $person->name='A name';
+    $person->age=21;
+    $person->save(); //New resource, send POST request. Returns false if the model doesn't validate
+
+    /* Updating a resource (sending a PUT request)
+    $person=Person::model()->findById(1);
+    $person->name='Another name';
+    $person->save(); //Not at new resource, update it. Returns false if the model doesn't validate
+
+    //or short version
+    Person::model()->updateById(1,array('name'=>'Another name'));
+
+    /* DELETE a resource
+    $person=Person::model()->findById(1);
+    $person->destroy(); //DELETE to http://api.example.com/person/1
+
+    //or short version
+    Person::model()->deleteById(1);
