@@ -10,17 +10,6 @@
  */
 class EActiveResourceParser
 {
-
-    /**
-     * Builds an http query out of a string. Use for urlencoding data.
-     * @param array $array The array that should be converted
-     * @return string The encoded string.
-     */
-    public static function arrayToString($array)
-    {
-        return urldecode(http_build_query($array,"\n"));
-    }
-
     /**
      * This function is originally derived from @link http://www.bin-co.com/php/scripts/xml2array/ and parses an XML string into an PHP array
      * @param string $contents The XML string
@@ -181,44 +170,7 @@ class EActiveResourceParser
      */
     public static function arrayToJSON($data)
     {
-        $json=null;
-
-        if($data<>null)
-        {
-            //delete null values
-            if(is_array($data))
-                $json=CJSON::encode(self::filterDataArray($data));
-            else
-                $json=CJSON::encode($data);
-        }
-
-        return $json;
+        return $json=CJSON::encode($data);
     }
-
-    /**
-     * Converts an array to an urlencoded string
-     * @param array  The array to be converted
-     * @return string The converted string
-     */
-    public static function arrayToFormData($data)
-    {
-        return http_build_query(self::filterDataArray($data));
-    }
-
-    public static function filterDataArray($data)
-    {
-        if (!is_array($data))
-            return $data;
-
-        $items = array();
-
-        foreach ($data as $key => $value)
-            if($value!=="" && $value!==null)
-                $items[$key] = self::filterDataArray($value);
-
-        return $items;
-    }
-                    
-    
 }
 ?>

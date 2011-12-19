@@ -81,7 +81,7 @@ class EActiveResourceProperty
                         case 'string': return (string)$value;
                         case 'integer': return (integer)$value;
                         case 'boolean': return (boolean)$value;
-                        case 'double':
+                        case 'double': return (double)$value;
                         default: return $value;
                 }
         }

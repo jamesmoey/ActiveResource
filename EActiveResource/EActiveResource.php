@@ -305,6 +305,32 @@ abstract class EActiveResource extends CModel
             }
     }
     
+    protected function getAttributesToSend($attributes)
+    {
+        //typecast before sending
+        $attributes=$this->getAttributes($attributes);  
+        foreach($attributes as $key=>$value)
+        {
+            if(isset($this->getMetaData()->properties[$key]))
+                $attributes[$key]=$this->getMetaData()->properties[$key]->typecast($value);
+        }
+        return $attributes;
+    }
+    
+    private function filterNullValues($data)
+    {
+        if (!is_array($data))
+            return $data;
+
+        $items = array();
+
+        foreach ($data as $key => $value)
+            if($value!=="" && $value!==null)
+                $items[$key] = $this->filterNullValues($value);
+
+        return $items;
+    }
+    
     /**
      * Enables caching for requests
      * @param integer $duration The cache duration in seconds
@@ -378,7 +404,7 @@ abstract class EActiveResource extends CModel
             if(property_exists($this,$name))
                     $this->$name=$value;
             else if(isset($this->getMetaData()->properties[$name]))
-                    $this->_attributes[$name]=$this->getMetaData()->properties[$name]->typecast($value);
+                    $this->_attributes[$name]=$value;
             else
                     return false;
             return true;
@@ -697,7 +723,7 @@ abstract class EActiveResource extends CModel
      * Note, validation is not performed in this method. You may call {@link validate} to perform the validation.
      * After the resource is inserted to the service successfully, its {@link isNewRecord} property will be set false,
      * and its {@link scenario} property will be set to be 'update'.
-     * @param array $properties list of attributes that need to be saved. Defaults to null,
+     * @param array $attributes list of attributes that need to be saved. Defaults to null,
      * meaning all attributes that are loaded from the service will be saved.
      * @return boolean whether the attributes are valid and the resource is inserted successfully.
      * @throws EActiveResourceException if the resource is not new
@@ -710,7 +736,7 @@ abstract class EActiveResource extends CModel
         {
             Yii::trace(get_class($this).'.create()','ext.EActiveResource');
 
-            $response=$this->postRequest(null,$this->getAttributes());
+            $response=$this->postRequest(null,$this->getAttributesToSend($attributes));
             $returnedmodel=$this->populateRecord($response->getData());
 
             if($returnedmodel)
@@ -745,7 +771,7 @@ abstract class EActiveResource extends CModel
             if($this->beforeSave())
             {
                     Yii::trace(get_class($this).'.update()','ext.EActiveResource');
-                    $this->updateById($this->getId(),$this->getAttributes($attributes));
+                    $this->updateById($this->getId(),$this->getAttributesToSend($attributes));
                     $this->afterSave();
                     return true;
             }
@@ -924,7 +950,7 @@ abstract class EActiveResource extends CModel
                     if(property_exists($resource,$name))
                         $resource->$name=$value;
                     else if((isset($this->getMetaData()->properties[$name])))
-                        $resource->_attributes[$name]=$this->getMetaData()->properties[$name]->typecast($value);
+                        $resource->_attributes[$name]=$value;
                 }
                 $resource->attachBehaviors($resource->behaviors());
                 if($callAfterFind)
