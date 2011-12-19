@@ -3,15 +3,6 @@
 ...is an extension for the Yii PHP framework allowing the user to create models that use RESTful services as persistent storage.
 The implementation is inspired by Yii's CActiveRecord class (http://www.yiiframework.com/doc/api/1.1/CActiveRecord/) and the Ruby on Rails implementation of ActiveResource (http://api.rubyonrails.org/classes/ActiveResource/Base.html).
 
-##ATTENTION: 
-1. This class is completely schemaless by default meaning that you can assign any attribute on the fly. Because of that you can't use any magic SETTERS like
-$model->attributes=array('name'=>'Haensel') as this would add an attribute called "attributes" to the model with array('name'=>'Haensel') as value. 
-Always use the corresponding methods (like setAttributes()).
-
-2. The only validation rule that is ignored when setting a dynamic attribute is the 'safe' rule. So setting $model->someAttribute='TEST' will set the
-attribute even if 'someAttribute' wasn't explicitly set to being 'safe'. This means that $model->save() will POST the model to the service because the model validates.
-If you use other rules like 'required' then validation is performed as usual and validation will fail if these restrictions are not met.
-
 ##HINT:
 As there are thousands of different REST services out there that use a thousand different approaches it can be tricky to debug errors. Because of that I added extensive
 tracing to all major functions, so you should always be able to see every request, which method it used and how the service responded. Just enable the tracing functionality of Yii
