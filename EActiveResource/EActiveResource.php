@@ -77,7 +77,9 @@ abstract class EActiveResource extends CModel
      * <p>
      * <b>idProperty</b>: The id property of this class. If the service returns responses including the resource id then you should specify this attribute here. Example: The service response contains a valuefield called "_id" with the value "1". Specify "_id" as the idProperty in your configuration. Now update requests would automatically look for a field called "_id" and send their requests to 'http://iamaRESTapi/apiversion/people/1'
      * <p>
-     * <b>container</b>: Sometimes all responses include additional meta information about a request or the number of hits etc and the actual modelobject is contained within a container like 'result'. If this is the case you can specify this container here to allow ActiveResource to only load attributes specified within this container (e.g.: "results").
+     * <b>container</b>: A container wrapping a single resource. e.g. array('cat'=>array('id'=>1,'name'=>'Catty')). "cat" would be the container
+     * <p>
+     * <b>multiContainer</b> The name of the container wrapping an array of resources (often used in XML responses). e.g.: <cats><cat><name>Catty</name></cat></cats>. "Cats" would be the multiContainer
      * <p>
      * <b>contenttype</b>: Defines the content type that is send via HTTP header and is used to determine how the data has to be converted from php. If you use 'application/json' then data will automatically be converted to JSON.
      * <p>
@@ -102,7 +104,7 @@ abstract class EActiveResource extends CModel
     }
 
     /**
-     * Returns the content type as specified within Configuration()
+     * Returns the content type as specified within the configuration
      * @return string
      */
     public function getContentType()
@@ -111,7 +113,7 @@ abstract class EActiveResource extends CModel
     }
 
     /**
-     * Returns the accept type as specified within Configuration()
+     * Returns the accept type as specified within the configuration
      * @return string
      */
     public function getAcceptType()
@@ -120,7 +122,7 @@ abstract class EActiveResource extends CModel
     }
 
     /**
-     * Returns the site as specified within Configuration()
+     * Returns the site as specified within the configuration
      * @return string
      */
     public function getSite()
@@ -129,7 +131,7 @@ abstract class EActiveResource extends CModel
     }
 
     /**
-     * Returns the resource as specified within Configuration()
+     * Returns the resource as specified within the configuration
      * @return string
      */
     public function getResource()
@@ -138,7 +140,7 @@ abstract class EActiveResource extends CModel
     }
 
     /**
-     * Returns the file extension as specified within Configuration()
+     * Returns the file extension as specified within the configuration
      * @return string
      */
     public function getFileExtension()
@@ -147,7 +149,7 @@ abstract class EActiveResource extends CModel
     }
 
     /**
-     * Returns the container field as specified within Configuration()
+     * Returns the container field as specified within the configuration
      * @return string
      */
     public function getContainer()
@@ -156,7 +158,7 @@ abstract class EActiveResource extends CModel
     }
     
     /**
-     * Returns the container field as specified within Configuration()
+     * Returns the container field as specified within the configuration
      * @return string
      */
     public function getMultiContainer()
@@ -165,7 +167,7 @@ abstract class EActiveResource extends CModel
     }
 
     /**
-     * Returns the idProperty as specified within Configuration()
+     * Returns the idProperty as specified within the configuration
      * @return string
      */
     public function idProperty()
