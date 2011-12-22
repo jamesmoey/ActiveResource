@@ -102,6 +102,43 @@ abstract class EActiveResource extends CModel
     {
         return array();
     }
+    
+    public function routes()
+    {
+        return array(
+            'GET'=>array(
+                'resource'=>':site/:resource/:id',
+                'collection'=>':site/:resource',
+            ),
+            'PUT'=>array(
+                'resource'=>':site/:resource/:id',
+                'collection'=>':site/:resource',
+            ),
+            'POST'=>array(
+                'resource'=>':site/:resource/:id',
+                'collection'=>':site/:resource',
+            ),
+            'DELETE'=>array(
+                'resource'=>':site/:resource/:id',
+                'collection'=>':site/:resource',
+            ),
+        );
+    }
+    
+    public function buildUri($method,$route,$options)
+    {
+        $uri="";
+        $routes=$this->routes();
+        if(!isset($routes[$method][$route]))
+            throw new EActiveResourceRequestException('Custom route "' . $route . '" does not exist for '.$method.' requests');
+            
+        $uri=strtr($routes[$method][$route],array(':site'=>$this->getSite(),':resource'=>$this->getResource(),':id'=>$this->getId()));
+        
+        if(!empty($options))
+            $uri=$uri.'?'.http_build_query($options);
+        
+        return $uri;
+    }
 
     /**
      * Returns the content type as specified within the configuration
@@ -736,7 +773,7 @@ abstract class EActiveResource extends CModel
         {
             Yii::trace(get_class($this).'.create()','ext.EActiveResource');
 
-            $response=$this->postRequest(null,$this->getAttributesToSend($attributes));
+            $response=$this->postRequest('collection',array(),$this->getAttributesToSend($attributes));
             $returnedmodel=$this->populateRecord($response->getData());
 
             if($returnedmodel)
@@ -887,7 +924,8 @@ abstract class EActiveResource extends CModel
     public function findById($id)
     {
             Yii::trace(get_class($this).'.findById()','ext.EActiveResource');
-            $response=$this->getRequest($id);
+            $this->{$this->idProperty()}=$id;
+            $response=$this->getRequest('resource');
             return $this->populateRecord($response->getData());
     }
     
@@ -898,7 +936,7 @@ abstract class EActiveResource extends CModel
     public function findAll()
     {
             Yii::trace(get_class($this).'.findAll()','ext.EActiveResource');
-            $response=$this->getRequest();
+            $response=$this->getRequest('collection');
             return $this->populateRecords($response->getData());
     }
 
@@ -911,7 +949,8 @@ abstract class EActiveResource extends CModel
     public function updateById($id,$attributes)
     {
             Yii::trace(get_class($this).'.updateById()','ext.EActiveResource');
-            $response=$this->putRequest($id,$attributes);
+            $this->{$this->idProperty()}=$id;
+            $response=$this->putRequest('resource',array(),$attributes);
             return true;
     }
 
@@ -922,7 +961,8 @@ abstract class EActiveResource extends CModel
     public function deleteById($id)
     {
             Yii::trace(get_class($this).'.deleteById()','ext.EActiveResource');
-            $response=$this->deleteRequest($id);
+            $this->{$this->idProperty()}=$id;
+            $response=$this->deleteRequest('resource');
             return true;
     }
 
@@ -1015,93 +1055,68 @@ abstract class EActiveResource extends CModel
     }
 
     /**
-     * Send a GET request to this resource.
-     * @param string $id The id of the resource. This is optional. Set to null if you want to send a request like GET 'http://iamaRESTapi/apiversion/people'
-     * @param string $additional Some requests need some additional uri extensions like getting all people that were fired. GET 'http://iamaRESTapi/apiversion/people/fired'. Set to '/fired' if you want to send a request like that
-     * @param array $customHeader A custom header
+     * Send a GET request to this resource according to the supplied route (which has to be defined in routes())
+     * @param string $route The route used for this request
+     * @param array $options Additional options applied to the uri as url parameters
+     * @param array $data an associative array holding the data to be sent
      * @return EActiveResourceResponse The response object
      */
-    public function getRequest($id=null,$additional=null,$customHeader=array())
+    public function getRequest($route,$options=array(),$data=null)
     {
-        $uri='';
-        if($this->getSite())
-            $uri.=$this->getSite();
-        if($this->getResource())
-            $uri.='/'.$this->getResource();
-        if($id)
-            $uri.='/'.$id;
-        if($additional)
-            $uri.=$additional;
-        if($this->getFileExtension())
-            $uri.=$this->getFileExtension();
-        
-        return $this->getConnection()->sendRequest($uri, EActiveResourceRequest::METHOD_GET,null,$customHeader,$this->getContentType(),$this->getAcceptType());
+        $uri=$this->buildUri('GET',$route,$options);
+        return $this->sendRequest($uri,'GET',$data);
     }
 
     /**
-     * Send a PUT request to this resource.
-     * @param string $id The id of the resource. This is optional. Set to null if you want to send a request like PUT 'http://iamaRESTapi/apiversion/people'
-     * @param array $data An array containing the data to be sent to the service. Defaults to the attributes of this model as an associative array.
-     * @param string $additional Some requests need some additional uri extensions like modifying all people that were fired. PUT 'http://iamaRESTapi/apiversion/people/fired'. Set to '/fired' if you want to send a request like that
-     * @param array $customHeader A custom header
+     * Send a PUT request to this resource according to the supplied route (which has to be defined in routes())
+     * @param string $route The route used for this request
+     * @param array $options Additional options applied to the uri as url parameters
+     * @param array $data an associative array holding the data to be sent
      * @return EActiveResourceResponse The response object
      */
-    public function putRequest($id=null,$data=null,$additional=null,$customHeader=array())
+    public function putRequest($route,$options=array(),$data=null)
     {
-        $uri='';
-        if($this->getSite())
-            $uri.=$this->getSite();
-        if($this->getResource())
-            $uri.='/'.$this->getResource();
-        if($id)
-            $uri.='/'.$id;
-        if($additional)
-            $uri.=$additional;
-        return $this->getConnection()->sendRequest($uri,EActiveResourceRequest::METHOD_PUT,$data,$customHeader,$this->getContentType(),$this->getAcceptType());
+        $uri=$this->buildUri('PUT',$route,$options);
+        return $this->sendRequest($uri,'PUT',$data);
     }
 
     /**
-     * Send a POST request to this resource.
-     * @param string $id The id of the resource. This is optional. Set to null if you want to send a request like POST 'http://iamaRESTapi/apiversion/people'
-     * @param array $data An array containing the data to be sent to the service. Defaults to the attributes of this model as an associative array.
-     * @param string $additional Some requests need some additional uri extensions like modifying all people that were fired. POST 'http://iamaRESTapi/apiversion/people/fired'. Set to '/fired' if you want to send a request like that
-     * @param array $customHeader A custom header
+     * Send a POST request to this resource according to the supplied route (which has to be defined in routes())
+     * @param string $route The route used for this request
+     * @param array $options Additional options applied to the uri as url parameters
+     * @param array $data an associative array holding the data to be sent
      * @return EActiveResourceResponse The response object
      */
-    public function postRequest($id=null,$data=null,$additional=null,$customHeader=array())
+    public function postRequest($route,$options=array(),$data=null)
     {
-        $uri='';
-        if($this->getSite())
-            $uri.=$this->getSite();
-        if($this->getResource())
-            $uri.='/'.$this->getResource();
-        if($id)
-            $uri.='/'.$id;
-        if($additional)
-            $uri.=$additional;
-        return $this->getConnection()->sendRequest($uri,EActiveResourceRequest::METHOD_POST,$data,$customHeader,$this->getContentType(),$this->getAcceptType());
+        $uri=$this->buildUri('POST',$route,$options);
+        return $this->sendRequest($uri,'POST',$data);    
     }
 
     /**
-     * Send a DELETE request to this resource.
-     * @param string $id The id of the resource
-     * @param string $additional Some requests need some additional uri extensions like modifying all people that were fired. POST 'http://iamaRESTapi/apiversion/people/fired'. Set to '/fired' if you want to send a request like that
-     * @param array $customHeader A custom header
+     * Send a DELETE request to this resource according to the supplied route (which has to be defined in routes())
+     * @param string $route The route used for this request
+     * @param array $options Additional options applied to the uri as url parameters
+     * @param array $data an associative array holding the data to be sent
      * @return EActiveResourceResponse The response object
      */
-    public function deleteRequest($id,$additional=null,$customHeader=array())
+    public function deleteRequest($route,$options=array(),$data=null)
     {
-        $uri='';
-        if($this->getSite())
-            $uri.=$this->getSite();
-        if($this->getResource())
-            $uri.='/'.$this->getResource();
-        if($id)
-            $uri.='/'.$id;
-        if($additional)
-            $uri.=$additional;
-        return $this->getConnection()->sendRequest($uri,EActiveResourceRequest::METHOD_DELETE,null,$customHeader,$this->getContentType(),$this->getAcceptType());
-    }            
+        $uri=$this->buildUri('DELETE',$route,$options);
+        return $this->sendRequest($uri,'DELETE',$data);    
+    }
+    
+    public function sendRequest($uri,$method,$data)
+    {
+        $request=new EActiveResourceRequest;
+        $request->setUri($uri);
+        $request->setMethod($method);
+        $request->setData($data);
+        $request->setContentType($this->getContentType());
+        $request->setAcceptType($this->getAcceptType());
+
+        return $this->getConnection()->sendRequest($request);
+    }
 }
 
 ?>

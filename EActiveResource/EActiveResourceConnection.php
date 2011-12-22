@@ -15,6 +15,7 @@
             'fileextension'=>'.json',
         ))
  */
+
 class EActiveResourceConnection extends CApplicationComponent
 {
     public $queryCachingDuration=0;
@@ -60,8 +61,8 @@ class EActiveResourceConnection extends CApplicationComponent
      * @param array $data The data to be sent as array
      * @return EActiveResourceResponse The response object
      */
-    public function sendRequest($uri,$method,$data=null,$customHeader=null,$contentType='application/json',$acceptType='application/json')
-    {        
+    public function sendRequest(EActiveResourceRequest $request)
+    {           
         ///LOOK FOR CACHED RESPONSES FIRST
         if($this->queryCachingCount>0
                         && $this->queryCachingDuration>0
@@ -69,29 +70,21 @@ class EActiveResourceConnection extends CApplicationComponent
                         && ($cache=Yii::app()->getComponent($this->queryCacheID))!==null)
         {
             $this->queryCachingCount--;
-            $cacheKey='yii:eactiveresourcerequest:'.$uri.':'.$method.':'.$this->recursiveImplode('-',$customHeader);
-            $cacheKey.=':'.$this->recursiveImplode('#',$data);
+            $cacheKey='yii:eactiveresourcerequest:'.$request->getUri().':'.$request->getMethod().':'.$this->recursiveImplode('-',$request->getHeader());
+            $cacheKey.=':'.$this->recursiveImplode('#',$request->getData());
             if(($result=$cache->get($cacheKey))!==false)
             {
                     Yii::trace('Response found in cache','ext.EActiveResource.EActiveResourceConnection');
                     return $result;
             }
         }
-                
-        $request=new EActiveResourceRequest;
-        $request->setUri($uri);
-        $request->setMethod($method);
-        $request->setData($data);
-        $request->setContentType($contentType);
-        $request->setAcceptType($acceptType);
-        $request->setCustomHeader($customHeader);
-        
+
         $response=$request->run();
-        
+
         //CACHE RESULT IF CACHE IS SET
         if(isset($cache,$cacheKey))
             $cache->set($cacheKey, $response, $this->queryCachingDuration, $this->queryCachingDependency);
-                                
+
         return $response;
     }
     
