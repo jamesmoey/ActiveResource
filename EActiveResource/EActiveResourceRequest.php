@@ -364,7 +364,7 @@ class EActiveResourceRequest
                 else
                     Yii::trace('Sending '.$this->getMethod().' request to '.$this->getUri().' without data, accepting: '.$this->getAcceptType(),'ext.EActiveResource.request');
                 
-                $response=new EActiveResourceResponse(curl_exec($this->ch),curl_getinfo($this->ch),$this->_headerString,$this->getAcceptType());
+                $response=new EActiveResourceResponse(curl_exec($this->ch),curl_getinfo($this->ch),$this->_headerString,$this->getAcceptType(),curl_error($this->ch));
                                 
                 curl_close($this->ch);
                 

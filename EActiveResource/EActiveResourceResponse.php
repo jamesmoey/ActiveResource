@@ -23,14 +23,14 @@ class EActiveResourceResponse
      * @param array $info The curl response info array
      * @param string $headerString The header string returned by the service
      */
-    public function __construct($rawData,$info,$headerString,$acceptType)
+    public function __construct($rawData,$info,$headerString,$acceptType,$curlError)
     {
         $this->_rawData=$rawData;
         $this->_headerString=$headerString;
         $this->_info=$info;
         $this->_acceptType=$acceptType;
         $this->parseHeaders();
-        $this->hasErrors();
+        $this->hasErrors($curlError);
         $this->parseData();
     }
     
@@ -117,7 +117,7 @@ class EActiveResourceResponse
      * Internally used to check the response codes. Throws errors if errors occured
      * @return boolean returns false if no errors occurred, throws exception if errors occured
      */
-    protected function hasErrors()
+    protected function hasErrors($curlError)
     {
         $responseInfo=$this->getInfo();
         $responseUri=$responseInfo['url'];
@@ -127,6 +127,9 @@ class EActiveResourceResponse
             return false;
         else
         {
+            if (!empty($curlError))
+                Yii::trace('CURL ERROR: '.$curlError,'ext.EActiveResource');
+
             if(YII_DEBUG)
                 $errorMessage="The requested uri returned an error with status code $responseCode \n\n".$this->getRawData();
             else
