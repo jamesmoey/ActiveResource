@@ -107,6 +107,7 @@ class EActiveResourceRequest
             $this->setOption(CURLOPT_RETURNTRANSFER,TRUE);
 	    $this->setOption(CURLOPT_FOLLOWLOCATION,TRUE);
             $this->setOption(CURLOPT_FAILONERROR,FALSE);
+            $this->setOption(CURLOPT_SSL_VERIFYPEER, FALSE);
         }
         
         /**
