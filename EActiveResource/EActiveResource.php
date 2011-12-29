@@ -106,37 +106,20 @@ abstract class EActiveResource extends CModel
     public function routes()
     {
         return array(
-            'GET'=>array(
-                'resource'=>':site/:resource/:id',
-                'collection'=>':site/:resource',
-            ),
-            'PUT'=>array(
-                'resource'=>':site/:resource/:id',
-                'collection'=>':site/:resource',
-            ),
-            'POST'=>array(
-                'resource'=>':site/:resource/:id',
-                'collection'=>':site/:resource',
-            ),
-            'DELETE'=>array(
-                'resource'=>':site/:resource/:id',
-                'collection'=>':site/:resource',
-            ),
+            'resource'=>':site/:resource/:id',
+            'collection'=>':site/:resource',
         );
     }
     
-    public function buildUri($method,$route,$options)
+    protected function buildUri($route)
     {
         $uri="";
         $routes=$this->routes();
-        if(!isset($routes[$method][$route]))
-            throw new EActiveResourceRequestException('Custom route "' . $route . '" does not exist for '.$method.' requests');
+        if(!isset($routes[$route]))
+            throw new EActiveResourceRequestException('Custom route "' . $route . '" does not exist');
             
-        $uri=strtr($routes[$method][$route],array(':site'=>$this->getSite(),':resource'=>$this->getResource(),':id'=>$this->getId()));
-        
-        if(!empty($options))
-            $uri=$uri.'?'.http_build_query($options);
-        
+        $uri=strtr($routes[$route],array(':site'=>$this->getSite(),':resource'=>$this->getResource(),':id'=>$this->getId()));
+                
         return $uri;
     }
 
@@ -201,6 +184,16 @@ abstract class EActiveResource extends CModel
     public function getMultiContainer()
     {
         return $this->getMetaData()->getSchema()->multiContainer;
+    }
+    
+    public function getAuth()
+    {
+        return $this->getMetaData()->getSchema()->auth;
+    }
+    
+    public function getSSL()
+    {
+        return $this->getMetaData()->getSchema()->ssl;
     }
 
     /**
@@ -926,7 +919,10 @@ abstract class EActiveResource extends CModel
             Yii::trace(get_class($this).'.findById()','ext.EActiveResource');
             $this->{$this->idProperty()}=$id;
             $response=$this->getRequest('resource');
-            return $this->populateRecord($response->getData());
+            if($response->hasErrors()===false)
+                return $this->populateRecord($response->getData());
+            else
+                $response->throwError();
     }
     
     /**
@@ -937,7 +933,10 @@ abstract class EActiveResource extends CModel
     {
             Yii::trace(get_class($this).'.findAll()','ext.EActiveResource');
             $response=$this->getRequest('collection');
-            return $this->populateRecords($response->getData());
+            if($response->hasErrors()===false)
+                return $this->populateRecords($response->getData());
+            else
+                $response->throwError();
     }
 
     /**
@@ -951,7 +950,10 @@ abstract class EActiveResource extends CModel
             Yii::trace(get_class($this).'.updateById()','ext.EActiveResource');
             $this->{$this->idProperty()}=$id;
             $response=$this->putRequest('resource',array(),$attributes);
-            return true;
+            if($response->hasErrors()===false)
+                return true;
+            else
+                $response->throwError();
     }
 
     /**
@@ -963,7 +965,11 @@ abstract class EActiveResource extends CModel
             Yii::trace(get_class($this).'.deleteById()','ext.EActiveResource');
             $this->{$this->idProperty()}=$id;
             $response=$this->deleteRequest('resource');
-            return true;
+            if($response->hasErrors()===false)
+                return true;
+            else
+                $response->throwError();
+                
     }
 
     /**
@@ -996,9 +1002,9 @@ abstract class EActiveResource extends CModel
                 if($callAfterFind)
                         $resource->afterFind();
                 return $resource;
-            }
-            else
-                    return null;
+        }
+        else
+                return null;
     }
 
     /**
@@ -1061,10 +1067,10 @@ abstract class EActiveResource extends CModel
      * @param array $data an associative array holding the data to be sent
      * @return EActiveResourceResponse The response object
      */
-    public function getRequest($route,$options=array(),$data=null)
+    public function getRequest($route,$params=array(),$data=null)
     {
-        $uri=$this->buildUri('GET',$route,$options);
-        return $this->sendRequest($uri,'GET',$data);
+        $uri=$this->buildUri($route);
+        return $this->sendRequest($uri,'GET',$params,$data);
     }
 
     /**
@@ -1074,10 +1080,10 @@ abstract class EActiveResource extends CModel
      * @param array $data an associative array holding the data to be sent
      * @return EActiveResourceResponse The response object
      */
-    public function putRequest($route,$options=array(),$data=null)
+    public function putRequest($route,$params=array(),$data=null)
     {
-        $uri=$this->buildUri('PUT',$route,$options);
-        return $this->sendRequest($uri,'PUT',$data);
+        $uri=$this->buildUri($route);
+        return $this->sendRequest($uri,'PUT',$params,$data);
     }
 
     /**
@@ -1087,10 +1093,10 @@ abstract class EActiveResource extends CModel
      * @param array $data an associative array holding the data to be sent
      * @return EActiveResourceResponse The response object
      */
-    public function postRequest($route,$options=array(),$data=null)
+    public function postRequest($route,$params=array(),$data=null)
     {
-        $uri=$this->buildUri('POST',$route,$options);
-        return $this->sendRequest($uri,'POST',$data);    
+        $uri=$this->buildUri($route);
+        return $this->sendRequest($uri,'POST',$params,$data);    
     }
 
     /**
@@ -1100,22 +1106,40 @@ abstract class EActiveResource extends CModel
      * @param array $data an associative array holding the data to be sent
      * @return EActiveResourceResponse The response object
      */
-    public function deleteRequest($route,$options=array(),$data=null)
+    public function deleteRequest($route,$params=array(),$data=null)
     {
-        $uri=$this->buildUri('DELETE',$route,$options);
-        return $this->sendRequest($uri,'DELETE',$data);    
+        $uri=$this->buildUri($route);
+        return $this->sendRequest($uri,'DELETE',$params,$data);    
     }
     
-    public function sendRequest($uri,$method,$data)
+    public function sendRequest($uri,$method,$params,$data)
     {
+        if(!empty($params))
+            $uri=$uri.'?'.http_build_query($params);
+                        
         $request=new EActiveResourceRequest;
+        
         $request->setUri($uri);
         $request->setMethod($method);
         $request->setData($data);
         $request->setContentType($this->getContentType());
         $request->setAcceptType($this->getAcceptType());
-
-        return $this->getConnection()->sendRequest($request);
+        
+        //AUTH STUFF
+        $auth=$this->getAuth();
+        if(isset($auth))
+        {
+            $request->setHttpLogin($auth['username'], $auth['password'], $auth['type']);
+        }
+        
+        //SSL STUFF
+        $ssl=$this->getSSL();
+        if(isset($ssl))
+        {
+            $request->setSSL($ssl['verifyPeer'], $ssl['verifyHost'], $ssl['pathToCert']);
+        }
+        
+        return $this->getConnection()->sendRequest($request);                 
     }
 }
 

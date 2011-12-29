@@ -12,7 +12,6 @@
             'resource'=>'people',
             'contenttype'=>'application/json',
             'accepttype'=>'application/json',
-            'fileextension'=>'.json',
         ))
  */
 
@@ -62,7 +61,7 @@ class EActiveResourceConnection extends CApplicationComponent
      * @return EActiveResourceResponse The response object
      */
     public function sendRequest(EActiveResourceRequest $request)
-    {           
+{                 
         ///LOOK FOR CACHED RESPONSES FIRST
         if($this->queryCachingCount>0
                         && $this->queryCachingDuration>0
