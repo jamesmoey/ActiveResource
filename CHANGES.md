@@ -1,5 +1,57 @@
 #Changes:
 
+##Version 0.6:
+
+###1. Added support for http auth
+You can now use the authentication mechanisms provided by curl like basic or digest auth. To do that
+you'll have to add this to your resource config
+
+            'activeresource'=>array(
+            'class'=>'EActiveResourceConnection',
+			'resources'=>array(
+				'MyClassName'=>array(
+            		'site'=>'http://api.aRESTservice.com',
+            		'resource'=>'people',
+            		'contenttype'=>'application/json',
+            		'accepttype'=>'application/json',
+            		'auth'=>array(
+            			'type'=>'basic', //or digest
+            			'username'=>'#####',
+            			'password'=>'#####'
+            		)
+       		)),
+       		'cacheId'=>'SomeCacheComponent')
+       		
+###2. Url routes
+Every method (like findById)  now uses a route defined via the routes() method which by default
+looks like
+
+			public function routes()
+    		{
+        		return array(
+            		'resource'=>':site/:resource/:id',
+            		'collection'=>':site/:resource',
+        		);
+    		}
+    		
+:site, :resource and :id are placeholders that will be replaced by the values defined in the resource
+configuration. Thus 
+
+			$this->postRequest('collection') //POST to http://api.aRESTservice.com/people
+			Person::model()->findById(10)->getRequest('resource') 
+			//GET to http://api.aRESTservice.com/people/10
+			
+If you don't have the route defined the route parameter will be treated as url
+
+			$this->getRequest('http://www.google.com') //GET to http://www.google.com
+			
+###3. Url parameters
+To make adding url parameters easier all xxxRequest methods allow passing in a params array
+
+			$this->getRequest('resource',array('fired'=>'true'))
+			//GET to http://api.aRESTservice.com/people/10?fired=true
+			$this->postRequest('resource',array('fired'=>'true'))
+			
 ##Version 0.5:
 This probably is the biggest update so far
 
