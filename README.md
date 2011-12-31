@@ -15,6 +15,7 @@ and look for the category "ext.EActiveResource"
 3.) Add the configuration for your resources to the main config
 
 	        'activeresource'=>array(
+	        'class'=>'EActiveResourceConnection',
 			'resources'=>array(
 				'Person'=>array(
             		'site'=>'http://api.aRESTservice.com',
