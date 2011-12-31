@@ -44,13 +44,53 @@ configuration. Thus
 If you don't have the route defined the route parameter will be treated as url
 
 			$this->getRequest('http://www.google.com') //GET to http://www.google.com
-			
+
+Defining custom routes
+
+			public function routes()
+    		{
+        		return array(
+            		'resource'=>':site/:resource/show/:id.json',
+            		'collection'=>':site/:resource',
+            		'someCustumRoute'=>':site/:resource/fired'
+        		);
+    		}
+    		
+    		////
+    		$this->getRequest('fired') //GET to http://api.aRESTservice.com/people/fired
+
 ###3. Url parameters
 To make adding url parameters easier all xxxRequest methods allow passing in a params array
 
 			$this->getRequest('resource',array('fired'=>'true'))
 			//GET to http://api.aRESTservice.com/people/10?fired=true
-			$this->postRequest('resource',array('fired'=>'true'))
+			$this->postRequest('collection',array('return'=>'json'),$data)
+			//POST to http://api.aRESTservice.com/people?return=json with data defined in $data
+			
+###4. SSL support
+You can use https by defining the ssl array in your resource config
+
+			'activeresource'=>array(
+            'class'=>'EActiveResourceConnection',
+			'resources'=>array(
+				'MyClassName'=>array(
+            		'site'=>'https://api.aRESTservice.com',
+            		'resource'=>'people',
+            		'contenttype'=>'application/json',
+            		'accepttype'=>'application/json',
+                	'ssl'=>array(
+                   		'verifyPeer'=>true,
+                        'verifyHost'=>2,
+                        'pathToCert'=>'/someCert.crt',
+                    )
+       		)),
+       		'cacheId'=>'SomeCacheComponent')
+       		
+To understand what these options do I recommend reading
+http://unitstep.net/blog/2009/05/05/using-curl-in-php-to-access-https-ssltls-protected-sites/
+
+###5. Error tracing
+Tracing info now includes headers and curl information for even better debugging
 			
 ##Version 0.5:
 This probably is the biggest update so far

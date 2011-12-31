@@ -21,7 +21,6 @@ and look for the category "ext.EActiveResource"
             		'resource'=>'people',
             		'contenttype'=>'application/json',
             		'accepttype'=>'application/json',
-            		'fileextension'=>'.json',
        		)),
        		'cacheId'=>'SomeCacheComponent')
        		
