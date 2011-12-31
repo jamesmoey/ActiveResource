@@ -36,8 +36,8 @@ class EActiveResourceSchema
         public $contenttype;
         public $accepttype;
 
-        public $username;
-        public $password;
+        public $auth;
+        public $ssl;
         
         
         public function __construct($config,$properties)

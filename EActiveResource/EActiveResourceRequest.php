@@ -14,16 +14,35 @@ class EActiveResourceRequest
 {
         protected $ch;
         
-        private $_uri;
-        private $_method;
-        private $_data;
-        private $_header;
-        private $_customHeader;
         private $_contentType;
         private $_acceptType;
         private $_timeout=30;
+        
+        private $_uri;
+        private $_method;
+        private $_data;
+        private $_headers=array(); //an array of header fields that will get merged with the standard header
+        private $_header;
+        private $_customHeader;       
+        
+        private $_formattedData;
                 
         private $_headerString="";
+        
+        private $_info;
+        private $_response;
+        
+        protected $supportedFormats = array(
+                'xml'               => 'application/xml',
+                'json'              => 'application/json',
+        );
+
+        protected $autoDetectFormats = array(
+                'application/xml' 	=> 'xml',
+                'text/xml' 		=> 'xml',
+                'application/json' 	=> 'json',
+                'text/json'         => 'json',
+        );
 
         const APPLICATION_JSON  ='application/json';
         const APPLICATION_XML   ='application/xml';
@@ -35,6 +54,10 @@ class EActiveResourceRequest
         const METHOD_DELETE = 'DELETE';
 
 
+        public function __construct() {
+            $this->init();
+        }
+        
 	/**
 	 * Initialize the extension
 	 * check to see if CURL is enabled and the format used is a valid one
@@ -42,7 +65,9 @@ class EActiveResourceRequest
 	public function init()
         {
             if( !function_exists('curl_init') )
-                throw new EActiveResourceRequestException( Yii::t('EActiveResourceRequest', 'You must have PHP curl enabled in order to use this extension.') );
+                throw new EActiveResourceRequestException_Curl(Yii::t('EActiveResource', 'You must have PHP curl enabled in order to use this extension.') );
+
+            $this->ch=curl_init();
 	}
                 
          /**
@@ -60,7 +85,7 @@ class EActiveResourceRequest
         public function setCookies($values)
         {
             if (!is_array($values))
-                throw new EActiveResourceRequestException(Yii::t('EActiveResource', 'Options must be an array'));
+                throw new EActiveResourceRequestException_Curl(Yii::t('EActiveResource', 'Options must be an array'));
             else
                 $params = $this->cleanPost($values);
 
@@ -72,8 +97,9 @@ class EActiveResourceRequest
 	sets login option
 	If is not setted , return false
 	*/
-        public function setHttpLogin($username = '', $password = '')
+        public function setHttpLogin($username = '', $password = '',$type='any')
         {
+            $this->setOption(CURLOPT_HTTPAUTH, constant('CURLAUTH_' . strtoupper($type)));
             $this->setOption(CURLOPT_USERPWD, $username.':'.$password);
         }
         /*
@@ -87,6 +113,11 @@ class EActiveResourceRequest
             $this->setOption(CURLOPT_HTTPPROXYTUNNEL, TRUE);
             $this->setOption(CURLOPT_PROXY, $uri.':'.$port);
 	}
+        
+        public function setApiKey($key, $name = 'X-API-KEY')
+        {
+            $this->setHeaderField($name, $key);
+        }
 
 	/*
 	@PROXY LOGIN SETINGS
@@ -152,9 +183,18 @@ class EActiveResourceRequest
             if(!empty($customHeader))
                 return $customHeader;
             else
-                return $this->getStandardHeader();
-            
+                return CMap::mergeArray($this->getStandardHeader(),$this->_headers);
         }
+        
+        /**
+         * Used to set a single header field like "accept-type" etc.
+         * @param string $headerField The name of the field
+         * @param string $content The content of the field
+         */
+        public function setHeaderField($headerField, $content = NULL)
+	{
+		$this->_headers[] = $content ? $headerField . ': ' . $content : $headerField;
+	}
         
         /**
          * Getter for the "standard header". This method simply checks if there is data to be sent by this request and if so
@@ -165,10 +205,10 @@ class EActiveResourceRequest
         {
             
             //set standard headers
-            if(!is_null($this->getParsedData()))
+            if(!is_null($this->getFormattedData()))
             {
                 $header=array(
-                    'Content-Length: '  .strlen($this->getParsedData()),
+                    'Content-Length: '  .strlen($this->getFormattedData()),
                     'Content-Type: '    .$this->getContentType(),
                     'Accept: '          .$this->getAcceptType(),
                 );
@@ -207,6 +247,20 @@ class EActiveResourceRequest
                 return null;
         }
         
+        public function setSSL($verifyPeer=true,$verifyHost=2,$pathToCert=null)
+	{
+            if ($verifyPeer)
+            {
+                $this->setOption(CURLOPT_SSL_VERIFYPEER, true);
+                $this->setOption(CURLOPT_SSL_VERIFYHOST, $verifyHost);
+                $this->setOption(CURLOPT_CAINFO, $pathToCert);
+            }
+            else
+            {
+                $this->setOption(CURLOPT_SSL_VERIFYPEER, false);
+            }
+	}
+        
         /**
          * Getter for the data set for this request
          * @return array the data set for this request (a PHP array)
@@ -232,29 +286,50 @@ class EActiveResourceRequest
          * Parsed the data according to the content type to build a valid request (JSON or XML)
          * @return string the JSON or XML encoded string, null if no data is set 
          */
-        public function getParsedData()
+        public function getFormattedData()
         {
-            if(isset($this->_parsedData))
-                    return $this->_parsedData;
+            if(isset($this->_formattedData))
+                    return $this->_formattedData;
             
             if(!is_null($this->getData()))
             {
                 switch($this->getContentType())
                 {
                     case self::APPLICATION_JSON:
-                        $parsedData=EActiveResourceParser::arrayToJSON($this->getData());
+                        $formattedData=EActiveResourceParser::arrayToJSON($this->getData());
                         break;
                     case self::APPLICATION_XML:
-                        $parsedData=EActiveResourceParser::arrayToXML($this->getData());
+                        $formattedData=EActiveResourceParser::arrayToXML($this->getData());
                         break;
                     default:
                         throw new CException('Content Type '.$this->getContentType().' not implemented!');
                 }
                 
-                return $this->_parsedData=$parsedData;
+                return $this->_formattedData=$formattedData;
             }
             
             return null;
+        }
+        
+        protected function getFormattedResponse($response)
+        {
+            if (array_key_exists($this->getAcceptType(), $this->autoDetectFormats))
+            {
+                switch($this->supportedFormats[$this->autoDetectFormats[$this->getAcceptType()]])
+                {
+                    case self::APPLICATION_JSON:
+                        $response=EActiveResourceParser::JSONtoArray($response);
+                        break;
+                    case self::APPLICATION_XML:
+                        $response=EActiveResourceParser::XMLToArray($response);
+                        break;
+                    default:
+                        throw new CException('Accept Type '.$this->getAcceptType().' not implemented!');
+                }
+                
+            }
+
+            return $response;
         }
         
         /**
@@ -291,8 +366,8 @@ class EActiveResourceRequest
         }
         
         /**
-         * Sets a custom header for this request. It will be mearched with the standard header array
-         * defining accept type, content length and content type.
+         * Sets a custom header for this request. This will OVERRIDE the standard header,
+         * so you'll have to set every field on your own.
          * @param array $customHeader the custom header array
          */
         public function setCustomHeader($customHeader)
@@ -337,7 +412,7 @@ class EActiveResourceRequest
             if(isset($this->_acceptType))
                     return $this->_acceptType;
         }
-
+        
 	/**
          * Sends the request and returns the response object.
          * @return EActiveResourceResponse The response object 
@@ -345,31 +420,75 @@ class EActiveResourceRequest
 	public function run()
         {            
                 if(is_null($this->getUri()))
-                    throw new EActiveResourceRequestException(Yii::t('EActiveResourceRequest', 'No uri set') );
-                
-                $this->ch = curl_init();
-                                                
+                    throw new EActiveResourceRequestException_Curl(Yii::t('EActiveResource', 'No uri set') );
+                                                                
                 $this->setOption(CURLOPT_URL,$this->getUri());
                 $this->setOption(CURLOPT_CUSTOMREQUEST,$this->getMethod());
                 $this->setOption(CURLOPT_HTTPHEADER,$this->getHeader());
-                $this->setOption(CURLOPT_HEADERFUNCTION,array($this,'addHeaderLine'));
+                $this->setOption(CURLOPT_HEADERFUNCTION,array($this,'addHeaderLine')); //the headerfunction is used to build a string out of the returned header line by line
+                $this->setOption(CURLINFO_HEADER_OUT,true);
                                 
-                if(!is_null($this->getParsedData()))
-                    $this->setOption(CURLOPT_POSTFIELDS, $this->getParsedData());
+                if(!is_null($this->getFormattedData()))
+                    $this->setOption(CURLOPT_POSTFIELDS, $this->getFormattedData());
                                 
                 $this->setDefaults();
+                                   
+                $this->_response=curl_exec($this->ch);
+                $this->_info=curl_getinfo($this->ch);
                 
-                if(!is_null($this->getParsedData()))
-                    Yii::trace('Sending '.$this->getMethod().' request to '.$this->getUri().' with content-type:'.$this->getContentType().', accept: '.$this->getAcceptType().' and data: '.$this->getParsedData(),'ext.EActiveResource.request');
+                if($this->_response===false)
+                    throw new EActiveResourceRequestException_Curl(curl_error($this->ch),  curl_errno($this->ch));
                 else
-                    Yii::trace('Sending '.$this->getMethod().' request to '.$this->getUri().' without data, accepting: '.$this->getAcceptType(),'ext.EActiveResource.request');
+                {
+                    Yii::trace(
+                        "### Sent request #### \n".
+                        "--------HEADER-------- \n".
+                        curl_getinfo($this->ch,CURLINFO_HEADER_OUT)."\n".
+                        "---------DATA--------- \n".
+                        (is_null($this->getFormattedData()) ? "none" : $this->getFormattedData()),'ext.EActiveResource.request');
                 
-                $response=new EActiveResourceResponse(curl_exec($this->ch),curl_getinfo($this->ch),$this->_headerString,$this->getAcceptType());
+                    Yii::trace(
+                        "### Received response #### \n".
+                        "-------CURLINFO------- \n".
+                        "Uri: ".$this->_info['url']."\n".
+                        "Total time: ".$this->_info['total_time']."\n".
+                        "--------HEADER-------- \n".
+                        $this->_headerString."\n".
+                        "---------DATA--------- \n".
+                        $this->_response,'ext.EActiveResource.response');
+                }
+                                
+                $formattedResponse=$this->getFormattedResponse($this->_response);
+                
+                $response=new EActiveResourceResponse($formattedResponse,$this->_info,$this->_headerString,$this->checkErrors());
                                 
                 curl_close($this->ch);
                 
                 return $response;
       }
+      
+    /**
+     * Internally used to check the response codes. Throws errors if errors occured
+     * @return boolean returns false if no errors occurred, throws exception if errors occured
+     */
+    public function checkErrors()
+    {
+        $responseInfo=$this->_info;
+        $responseUri=$responseInfo['url'];
+        $responseCode=$responseInfo['http_code'];
+
+        if($responseCode && $responseCode<400)
+            return false;
+        else
+        {
+            if(YII_DEBUG)
+                $errorMessage="Error $responseCode \n\n".$this->_response;
+            else
+                $errorMessage="Error $responseCode";
+
+            return array('status'=>$responseCode,'message'=>$errorMessage);            
+        }
+    }
       
 }
 ?>
