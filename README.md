@@ -4,6 +4,9 @@
 The implementation is inspired by Yii's CActiveRecord class (http://www.yiiframework.com/doc/api/1.1/CActiveRecord/) and the Ruby on Rails implementation of ActiveResource (http://api.rubyonrails.org/classes/ActiveResource/Base.html).
 
 ##HINT:
+CAUTION: THIS IS STILL AN ALPHA RELEASE!
+This project started as a draft and is still under development, so as long is there is no 1.0 release you may experience changes that could break your code. Look at the CHANGES.md file for further information
+
 As there are thousands of different REST services out there that use a thousand different approaches it can be tricky to debug errors. Because of that I added extensive
 tracing to all major functions, so you should always be able to see every request, which method it used and how the service responded. Just enable the tracing functionality of Yii
 and look for the category "ext.EActiveResource"
