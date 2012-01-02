@@ -116,7 +116,7 @@ abstract class EActiveResource extends CModel
         $uri="";
         $routes=$this->routes();
         if(!isset($routes[$route]))
-            throw new EActiveResourceRequestException('Custom route "' . $route . '" does not exist');
+            return $route; //the route is handled like an uri
             
         $uri=strtr($routes[$route],array(':site'=>$this->getSite(),':resource'=>$this->getResource(),':id'=>$this->getId()));
                 
@@ -919,10 +919,7 @@ abstract class EActiveResource extends CModel
             Yii::trace(get_class($this).'.findById()','ext.EActiveResource');
             $this->{$this->idProperty()}=$id;
             $response=$this->getRequest('resource');
-            if($response->hasErrors()===false)
-                return $this->populateRecord($response->getData());
-            else
-                $response->throwError();
+            return $this->populateRecord($response->getData());
     }
     
     /**
@@ -933,10 +930,7 @@ abstract class EActiveResource extends CModel
     {
             Yii::trace(get_class($this).'.findAll()','ext.EActiveResource');
             $response=$this->getRequest('collection');
-            if($response->hasErrors()===false)
-                return $this->populateRecords($response->getData());
-            else
-                $response->throwError();
+            return $this->populateRecords($response->getData());
     }
 
     /**
@@ -949,11 +943,8 @@ abstract class EActiveResource extends CModel
     {
             Yii::trace(get_class($this).'.updateById()','ext.EActiveResource');
             $this->{$this->idProperty()}=$id;
-            $response=$this->putRequest('resource',array(),$attributes);
-            if($response->hasErrors()===false)
-                return true;
-            else
-                $response->throwError();
+            $this->putRequest('resource',array(),$attributes);
+            return true;
     }
 
     /**
@@ -964,12 +955,8 @@ abstract class EActiveResource extends CModel
     {
             Yii::trace(get_class($this).'.deleteById()','ext.EActiveResource');
             $this->{$this->idProperty()}=$id;
-            $response=$this->deleteRequest('resource');
-            if($response->hasErrors()===false)
-                return true;
-            else
-                $response->throwError();
-                
+            $this->deleteRequest('resource');
+            return true;
     }
 
     /**
@@ -1138,8 +1125,8 @@ abstract class EActiveResource extends CModel
         {
             $request->setSSL($ssl['verifyPeer'], $ssl['verifyHost'], $ssl['pathToCert']);
         }
-        
-        return $this->getConnection()->sendRequest($request);                 
+                
+        return $this->getConnection()->sendRequest($request);                
     }
 }
 

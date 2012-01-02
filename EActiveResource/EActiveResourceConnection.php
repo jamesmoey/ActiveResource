@@ -84,6 +84,9 @@ class EActiveResourceConnection extends CApplicationComponent
         if(isset($cache,$cacheKey))
             $cache->set($cacheKey, $response, $this->queryCachingDuration, $this->queryCachingDependency);
 
+        if($response->hasErrors())
+            $response->throwError();
+        
         return $response;
     }
     
