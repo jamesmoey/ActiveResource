@@ -10,28 +10,25 @@
  */
 class EActiveResourceResponse
 {
-    private $_rawData;
-    private $_parsedData;
+    private $_data;
     private $_info;
-    private $_acceptType;
     private $_headerString;//the raw header
     private $_header;
-    
+    private $_error;
+        
     /**
      * Constructor
      * @param string $rawData The raw data returned by the service (xml,json etc.)
      * @param array $info The curl response info array
      * @param string $headerString The header string returned by the service
      */
-    public function __construct($rawData,$info,$headerString,$acceptType,$curlError)
+    public function __construct($data,$info,$headerString,$error)
     {
-        $this->_rawData=$rawData;
+        $this->_data=$data;
         $this->_headerString=$headerString;
         $this->_info=$info;
-        $this->_acceptType=$acceptType;
+        $this->_error=$error;
         $this->parseHeaders();
-        $this->hasErrors($curlError);
-        $this->parseData();
     }
     
     /**
@@ -49,7 +46,7 @@ class EActiveResourceResponse
      */
     public function getData()
     {
-            return $this->_parsedData;
+            return $this->_data;
     }
     
     /**
@@ -69,30 +66,7 @@ class EActiveResourceResponse
     {
             return $this->_header;
     }
-    
-    /**
-     * Internally used to parse the raw response from the service
-     * and create an PHP array according to the accept type (JSON, XML)
-     */
-    public function parseData()
-    {
-        Yii::trace("Response took ".$this->_info['total_time']." seconds:\n".$this->getRawData(),'ext.EActiveResource.response');
         
-        switch($this->_acceptType)
-            {
-                case EActiveResourceRequest::APPLICATION_JSON:
-                    $this->_parsedData=EActiveResourceParser::JSONtoArray($this->getRawData());
-                    break;
-                case EActiveResourceRequest::APPLICATION_XML:
-                    $this->_parsedData=EActiveResourceParser::XMLtoArray($this->getRawData());
-                    break;
-                case null:
-                    break;
-                default:
-                    throw new EActiveResourceException('Accept Type '.$info['content_type'].' not implemented!');
-            }
-    }
-    
     /**
      * Internally used to create an array out of the header string returned by the service. Use getHeader() to get the result
      */
@@ -117,65 +91,52 @@ class EActiveResourceResponse
      * Internally used to check the response codes. Throws errors if errors occured
      * @return boolean returns false if no errors occurred, throws exception if errors occured
      */
-    protected function hasErrors($curlError)
+    public function hasErrors()
     {
-        $responseInfo=$this->getInfo();
-        $responseUri=$responseInfo['url'];
-        $responseCode=$responseInfo['http_code'];
-
-        if($responseCode && $responseCode<400)
+        if(!$this->_error===false)
+            return true;
+        else {
             return false;
-        else
-        {
-            if (!empty($curlError))
-                Yii::trace('CURL ERROR: '.$curlError,'ext.EActiveResource');
-
-            if(YII_DEBUG)
-                $errorMessage="The requested uri returned an error with status code $responseCode \n\n".$this->getRawData();
-            else
-                $errorMessage="The requested uri returned an error with status code $responseCode";
-
-            switch ($responseCode)
-            {
-                case 0:
-                    Yii::trace('ERROR RESPONSE: '.$this->getRawData(),'ext.EActiveResource');
-                    throw new EActiveResourceRequestException('No response. Service may be down');
-
-                case 400:
-                    Yii::trace('ERROR RESPONSE: '.$this->getRawData(),'ext.EActiveResource');
-                    throw new EActiveResourceRequestException_BadRequest($errorMessage, $responseCode);
-                case 401:
-                    Yii::trace('ERROR RESPONSE: '.$this->getRawData(),'ext.EActiveResource');
-                    throw new EActiveResourceRequestException_UnauthorizedAccess($errorMessage, $responseCode);
-
-
-                case 403:
-                    Yii::trace('ERROR RESPONSE: '.$this->getRawData(),'ext.EActiveResource');
-                    throw new EActiveResourceRequestException_Forbidden($errorMessage, $responseCode);
-                case 404:
-                    Yii::trace('ERROR RESPONSE: '.$this->getRawData(),'ext.EActiveResource');
-                    throw new EActiveResourceRequestException_NotFound($errorMessage, $responseCode);
-                case 405:
-                    Yii::trace('ERROR RESPONSE: '.$this->getRawData(),'ext.EActiveResource');
-                    throw new EActiveResourceRequestException_MethodNotAllowed($errorMessage, $responseCode);
-                case 406:
-                    Yii::trace('ERROR RESPONSE: '.$this->getRawData(),'ext.EActiveResource');
-                    throw new EActiveResourceRequestException_NotAcceptable($errorMessage, $responseCode);
-
-
-                case 407:
-                    Yii::trace('ERROR RESPONSE: '.$this->getRawData(),'ext.EActiveResource');
-                    throw new EActiveResourceRequestException_ProxyAuthentication($errorMessage, $responseCode);
-                case 408:
-                    Yii::trace('ERROR RESPONSE: '.$this->getRawData(),'ext.EActiveResource');
-                    throw new EActiveResourceRequestException_Timeout($errorMessage, $responseCode);
-
-
-                default:
-                    Yii::trace('ERROR RESPONSE: '.$this->getRawData(),'ext.EActiveResource');
-                    throw new EActiveResourceRequestException($errorMessage, $responseCode);
-            }
         }
     }
+    
+    public function throwError()
+    {
+        $responseCode=$this->_error['status'];
+        $errorMessage=$this->_error['message'];
+        
+        switch($responseCode)
+        {
+            case 0:
+                throw new EActiveResourceRequestException('No response. Service may be down');
+
+            case 400:
+                throw new EActiveResourceRequestException_BadRequest($errorMessage, $responseCode);
+            case 401:
+                throw new EActiveResourceRequestException_UnauthorizedAccess($errorMessage, $responseCode);
+
+
+            case 403:
+                throw new EActiveResourceRequestException_Forbidden($errorMessage, $responseCode);
+            case 404:
+                throw new EActiveResourceRequestException_NotFound($errorMessage, $responseCode);
+            case 405:
+                throw new EActiveResourceRequestException_MethodNotAllowed($errorMessage, $responseCode);
+            case 406:
+                throw new EActiveResourceRequestException_NotAcceptable($errorMessage, $responseCode);
+
+
+            case 407:
+                throw new EActiveResourceRequestException_ProxyAuthentication($errorMessage, $responseCode);
+            case 408:
+                throw new EActiveResourceRequestException_Timeout($errorMessage, $responseCode);
+
+
+            default:
+                throw new EActiveResourceRequestException($errorMessage, $responseCode);
+        }
+    }
+    
+    
 }
 ?>
