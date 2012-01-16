@@ -95,7 +95,7 @@ abstract class EActiveResource extends CModel
             'acceptType'=>$this->getConnection()->acceptType,
             'contentType'=>$this->getConnection()->contentType,
             'auth'=>$this->getConnection()->auth,
-            'ssl'=>$this->getConnection()->auth,
+            'ssl'=>$this->getConnection()->ssl,
         );
     }
     
