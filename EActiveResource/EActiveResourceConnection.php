@@ -60,7 +60,7 @@ class EActiveResourceConnection extends CApplicationComponent
         //SSL STUFF
         if(isset($this->ssl))
         {
-            $request->setSSL($ssl['verifyPeer'], $ssl['verifyHost'], $ssl['pathToCert']);
+            $request->setSSL($this->ssl['verifyPeer'], $this->ssl['verifyHost'], $this->ssl['pathToCert']);
         }
         
         ///LOOK FOR CACHED RESPONSES FIRST
