@@ -5,37 +5,24 @@
  */
 
 /**
- * The EActiveResourceConnection component is used to define the configuration for all resources used in a project and allows caching
- * responses the same CActiveRecord does.
- * Example: 'activeresource'=>array(resources'=>array('MyClassName'=>array(
-            'site'=>'http://api.aRESTservice.com',
-            'resource'=>'people',
-            'contenttype'=>'application/json',
-            'accepttype'=>'application/json',
-        ))
+ * The EActiveResourceConnection component is used to define basic parameters used by all 
+ * requests using this connection such as content type,
+ * accept type, authorization, ssl, baseUri (site) and query caching options
  */
 
 class EActiveResourceConnection extends CApplicationComponent
 {
+    public $contentType;
+    public $acceptType;
+    public $site;
+    public $auth;
+    public $ssl;
+    public $allowNullValues=true;
+    
     public $queryCachingDuration=0;
     public $queryCachingDependency;
     public $queryCachingCount=0;
     public $queryCacheID='cache';
-    
-    public $resources=array();
-    
-    /**
-     * Gets the configuration array for a specific EActiveResource object
-     * @param string $activeResourceClassName The name of the class for which the configuration should be returned e.g(get_class(TwitterUser))
-     * @return array The configuration as defined in the config under 'resources'=>'classname' for the specified active resource class
-     */
-    public function getResourceConfiguration($activeResourceClassName)
-    {
-        if(isset($this->resources[$activeResourceClassName]))
-                return $this->resources[$activeResourceClassName];
-        else
-            throw new EActiveResourceException('No configuration for class '.$activeResourceClassName.' found!');
-    }
     
     /**
      * Used for caching responses
@@ -53,15 +40,29 @@ class EActiveResourceConnection extends CApplicationComponent
     }
     
     /**
-     * Creates a new request, sends and receives the data, uses caching if defined by the user.
-     * @param string $uri The uri this request is sent to.
-     * @param string $method The method (GET,PUT,POST,DELETE)
-     * @param array $customHeader A customHeader to be sent
-     * @param array $data The data to be sent as array
+     * Sends a query to the service. By default all GET requests
+     * are treated as queries which allows caching of responses.
+     * @param EActiveResourceRequest $request The request object
      * @return EActiveResourceResponse The response object
      */
-    public function sendRequest(EActiveResourceRequest $request)
-{                 
+    public function query(EActiveResourceRequest $request)
+    {
+        //set connection component specific options
+        $request->setContentType($this->contentType);
+        $request->setAcceptType($this->acceptType);
+        
+        //AUTH STUFF
+        if(isset($this->auth))
+        {
+            $request->setHttpLogin($auth['username'], $auth['password'], $auth['type']);
+        }
+        
+        //SSL STUFF
+        if(isset($this->ssl))
+        {
+            $request->setSSL($ssl['verifyPeer'], $ssl['verifyHost'], $ssl['pathToCert']);
+        }
+        
         ///LOOK FOR CACHED RESPONSES FIRST
         if($this->queryCachingCount>0
                         && $this->queryCachingDuration>0
@@ -83,13 +84,44 @@ class EActiveResourceConnection extends CApplicationComponent
         //CACHE RESULT IF CACHE IS SET
         if(isset($cache,$cacheKey))
             $cache->set($cacheKey, $response, $this->queryCachingDuration, $this->queryCachingDependency);
-
+        
         if($response->hasErrors())
             $response->throwError();
         
         return $response;
     }
     
+    /**
+     * Manipulate data with a request. execute requests like DELETE, PUT, POST requests can't be cached.
+     * @param EActiveResourceRequest $request The request object
+     * @return EActiveResourceResponse The response object
+     */
+    public function execute(EActiveResourceRequest $request)
+    {
+        //set connection component specific options
+        $request->setContentType($this->contentType);
+        $request->setAcceptType($this->acceptType);
+        
+        //AUTH STUFF
+        if(isset($this->auth))
+        {
+            $request->setHttpLogin($auth['username'], $auth['password'], $auth['type']);
+        }
+        
+        //SSL STUFF
+        if(isset($this->ssl))
+        {
+            $request->setSSL($ssl['verifyPeer'], $ssl['verifyHost'], $ssl['pathToCert']);
+        }
+        
+        $response=$request->run();
+         
+        if($response->hasErrors())
+            $response->throwError();
+        
+        return $response;
+    }
+        
     /**
      * Implodes a multidimensional array to a simple string (used to create unique cache keys)
      * @return string The array formatted as a string

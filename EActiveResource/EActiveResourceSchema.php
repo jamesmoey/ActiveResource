@@ -31,10 +31,10 @@ class EActiveResourceSchema
         public $container;
         public $multiContainer;
         public $embedded;
-        public $fileextension;
         public $idProperty;
-        public $contenttype;
-        public $accepttype;
+        public $contentType;
+        public $acceptType;
+        public $allowNullValues;
 
         public $auth;
         public $ssl;

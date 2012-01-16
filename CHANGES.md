@@ -1,5 +1,69 @@
 #Changes:
 
+##Version 0.7:
+
+###1. Seperation of connection information and resource information:
+The EActiveResourceConnection component now only holds information that is used
+by all resources using it as a connection like site,auth,ssl,contentType,acceptType. Resource
+specific information has to be defined in the rest() method of each resource.
+
+			'activeresource'=>array(
+            	'class'=>'EActiveResourceConnection',
+        		'site'=>'http://api.aRESTservice.com',
+        		'contentType'=>'application/json',
+            	'acceptType'=>'application/json',
+            	'auth'=>array(
+            	'type'=>'basic', //or digest
+            		'username'=>'#####',
+            		'password'=>'#####'
+            	)
+       		)),
+       		'queryCacheId'=>'SomeCacheComponent')
+       		
+       		///in the resource itself
+       		public function rest()
+    		{
+		 		return CMap::mergeArray(
+		 			parent::rest(),
+		 			array(
+		 				'resource'=>'people',
+		 			)
+		 		);
+     		}
+     		
+By default all resources use the "activeresource" component. If you want to use more than one
+service you'll have to define additional components and override the connectionName() method.
+Here's an example:
+
+			'mySecondService'=>array(
+            	'class'=>'EActiveResourceConnection',
+        		'site'=>'http://api.aRESTservice.com',
+        		'contentType'=>'application/json',
+            	'acceptType'=>'application/json',
+            	'auth'=>array(
+            	'type'=>'basic', //or digest
+            		'username'=>'#####',
+            		'password'=>'#####'
+            	)
+       		)),
+       		'queryCacheId'=>'SomeCacheComponent')
+       		
+       		///in the resource itself
+       		public function connectionName()
+    		{
+		 		return 'mySecondService';
+     		}
+     		
+###2. Seperation between queries and data manipulating requests
+In previous versions one could cache PUT, DELETE, POST requests which could lead to strange
+behaviors. By default, caching is only used by the finder methods which now use the query()
+function in EActiveResource instead of the sendRequest method used by all other methods.
+
+###3. BeforeFind events
+All finder methods now fire a beforeFind event before they are executed.
+
+###4. 
+
 ##Version 0.6:
 
 ###1. Added support for http auth
@@ -20,7 +84,7 @@ you'll have to add this to your resource config
             			'password'=>'#####'
             		)
        		)),
-       		'cacheId'=>'SomeCacheComponent')
+       		'queryCacheId'=>'SomeCacheComponent')
        		
 ###2. Url routes
 Every method (like findById)  now uses a route defined via the routes() method which by default

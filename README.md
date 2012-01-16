@@ -18,15 +18,12 @@ and look for the category "ext.EActiveResource"
 3.) Add the configuration for your resources to the main config
 
 	        'activeresource'=>array(
-	        'class'=>'EActiveResourceConnection',
-			'resources'=>array(
-				'Person'=>array(
-            		'site'=>'http://api.aRESTservice.com',
-            		'resource'=>'people',
-            		'contenttype'=>'application/json',
-            		'accepttype'=>'application/json',
+	        	'class'=>'EActiveResourceConnection',
+        		'site'=>'http://api.aRESTservice.com',
+            	'contentType'=>'application/json',
+            	'acceptType'=>'application/json',
        		)),
-       		'cacheId'=>'SomeCacheComponent')
+       		'queryCacheId'=>'SomeCacheComponent')
        		
 4.) Now create a class extending EActiveResource like this (don't forget the model() function!):
 
@@ -44,6 +41,16 @@ and look for the category "ext.EActiveResource"
      public static function model($className=__CLASS__)
      {
          return parent::model($className);
+     }
+     
+     public function rest()
+     {
+		 return CMap::mergeArray(
+		 	parent::rest(),
+		 	array(
+		 		'resource'=>'people',
+		 	)
+		 );
      }
 
      /* Let's define some properties and their datatypes
