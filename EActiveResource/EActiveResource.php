@@ -60,11 +60,11 @@ abstract class EActiveResource extends CModel
                 return self::$_connection;
         else
         {
-            self::$_connection=Yii::app()->getComponent('activeresource');
+            self::$_connection=Yii::app()->getComponent($this->connectionName());
             if(self::$_connection instanceof EActiveResourceConnection)
                 return self::$_connection;
             else
-                throw new EActiveResourceException('No "activeresource" component specified!');
+                throw new EActiveResourceException('No '.$this->connectionName().' component specified!');
         }
     }     
 
@@ -85,13 +85,18 @@ abstract class EActiveResource extends CModel
      * <p>
      * <b>accepttype</b>: Defines the accept type send via HTTP header. It is also used to convert the response back to a php readable format like an array of attributes. Define application/json to automatically convert JSON responses to PHP arrays.
      * <p>
-     * <b>fileExtension</b>: This is used to append something like '.json' to every GET request. This can be useful if the service doesn't respect headers but uses a formatextension to know what type of response you are looking for. Always remember to use a '.' in front of the extension!
      * </ul>
      * @return array The configuration of this classed as used by EActiveResourceMetaData.
      */
     public function rest()
     {
-        return $this->getConnection()->getResourceConfiguration(get_class($this));
+        return array(
+            'site'=>$this->getConnection()->site,
+            'acceptType'=>$this->getConnection()->acceptType,
+            'contentType'=>$this->getConnection()->contentType,
+            'auth'=>$this->getConnection()->auth,
+            'ssl'=>$this->getConnection()->auth,
+        );
     }
     
     /**
@@ -122,6 +127,16 @@ abstract class EActiveResource extends CModel
                 
         return $uri;
     }
+    
+    /**
+     * Returns the name of the connection component used by this resource. Defaults to 'activeresource'.
+     * Override this method if you want to use another component
+     * @return string the connection component name 
+     */
+    public function connectionName()
+    {
+        return 'activeresource';
+    }
 
     /**
      * Returns the content type as specified within the configuration
@@ -129,7 +144,7 @@ abstract class EActiveResource extends CModel
      */
     public function getContentType()
     {
-        return $this->getMetaData()->getSchema()->contenttype;
+        return $this->getMetaData()->getSchema()->contentType;
     }
 
     /**
@@ -138,7 +153,7 @@ abstract class EActiveResource extends CModel
      */
     public function getAcceptType()
     {
-        return $this->getMetaData()->getSchema()->accepttype;
+        return $this->getMetaData()->getSchema()->acceptType;
     }
 
     /**
@@ -157,15 +172,6 @@ abstract class EActiveResource extends CModel
     public function getResource()
     {
         return $this->getMetaData()->getSchema()->resource;
-    }
-
-    /**
-     * Returns the file extension as specified within the configuration
-     * @return string
-     */
-    public function getFileExtension()
-    {
-        return $this->getMetaData()->getSchema()->fileextension;
     }
 
     /**
@@ -335,7 +341,7 @@ abstract class EActiveResource extends CModel
             }
     }
     
-    protected function getAttributesToSend($attributes)
+    public function getAttributesToSend($attributes=null)
     {
         //typecast before sending
         $attributes=$this->getAttributes($attributes);  
@@ -344,21 +350,27 @@ abstract class EActiveResource extends CModel
             if(isset($this->getMetaData()->properties[$key]))
                 $attributes[$key]=$this->getMetaData()->properties[$key]->typecast($value);
         }
-        return $attributes;
+                  
+        return $this->filterNullValues($attributes);
     }
     
     private function filterNullValues($data)
     {
-        if (!is_array($data))
-            return $data;
+        if(!$this->getConnection()->allowNullValues)
+        {
+            if (!is_array($data))
+                return $data;
 
-        $items = array();
+            $items = array();
 
-        foreach ($data as $key => $value)
-            if($value!=="" && $value!==null)
-                $items[$key] = $this->filterNullValues($value);
+            foreach ($data as $key => $value)
+                if($value!=="" && $value!==null)
+                    $items[$key] = $this->filterNullValues($value);
 
-        return $items;
+            return $items;
+        }
+        
+        return $data;
     }
     
     /**
@@ -917,8 +929,11 @@ abstract class EActiveResource extends CModel
     public function findById($id)
     {
             Yii::trace(get_class($this).'.findById()','ext.EActiveResource');
+            if(empty($id))
+                throw new EActiveResourceException ('No id specified!', 500);
+
             $this->{$this->idProperty()}=$id;
-            $response=$this->getRequest('resource');
+            $response=$this->query('resource');
             return $this->populateRecord($response->getData());
     }
     
@@ -929,7 +944,7 @@ abstract class EActiveResource extends CModel
     public function findAll()
     {
             Yii::trace(get_class($this).'.findAll()','ext.EActiveResource');
-            $response=$this->getRequest('collection');
+            $response=$this->query('collection');
             return $this->populateRecords($response->getData());
     }
 
@@ -1099,35 +1114,52 @@ abstract class EActiveResource extends CModel
         return $this->sendRequest($uri,'DELETE',$params,$data);    
     }
     
+    /**
+     * Sends a request to the service
+     * @param string $uri The uri used
+     * @param string The method uses
+     * @param array $params Optional params array
+     * @param array $data Optional data to be sent
+     * @return EActiveResourceResponse The response 
+     */
     public function sendRequest($uri,$method,$params,$data)
     {
         if(!empty($params))
             $uri=$uri.'?'.http_build_query($params);
                         
         $request=new EActiveResourceRequest;
-        
         $request->setUri($uri);
         $request->setMethod($method);
         $request->setData($data);
-        $request->setContentType($this->getContentType());
-        $request->setAcceptType($this->getAcceptType());
         
-        //AUTH STUFF
-        $auth=$this->getAuth();
-        if(isset($auth))
-        {
-            $request->setHttpLogin($auth['username'], $auth['password'], $auth['type']);
-        }
-        
-        //SSL STUFF
-        $ssl=$this->getSSL();
-        if(isset($ssl))
-        {
-            $request->setSSL($ssl['verifyPeer'], $ssl['verifyHost'], $ssl['pathToCert']);
-        }
-                
-        return $this->getConnection()->sendRequest($request);                
+        return $this->getConnection()->execute($request); 
     }
+    
+    /**
+     * Perform a query (mainly used by the finder methods). Only queries allow caching and fire a beforeFind
+     * event
+     * @param string $route The route to be sued by the query
+     * @param string $method The method to be used (defaults to GET)
+     * @param array $params Additional params for the query
+     * @param array $data Optional data to be sent
+     * @return EActiveResourceResponse The response 
+     */
+    public function query($route,$method='GET',$params=array(),$data=null)
+    {
+        $this->beforeFind();
+        $uri=$this->buildUri($route);
+        
+        if(!empty($params))
+            $uri=$uri.'?'.http_build_query($params);
+                        
+        $request=new EActiveResourceRequest;
+        $request->setUri($uri);
+        $request->setMethod($method);
+        $request->setData($data);
+        
+        return $this->getConnection()->query($request);
+    }
+        
 }
 
 ?>
