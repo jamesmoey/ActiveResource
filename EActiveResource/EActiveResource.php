@@ -924,16 +924,17 @@ abstract class EActiveResource extends CModel
     /**
      * Finds a single active resource with the specified id.
      * @param mixed $id The id.
+     * @param array $params additional params to be sent.
      * @return EActiveResource the resource found. Null if none is found.
      */
-    public function findById($id)
+    public function findById($id,$params=array())
     {
             Yii::trace(get_class($this).'.findById()','ext.EActiveResource');
             if(empty($id))
                 throw new EActiveResourceException ('No id specified!', 500);
 
             $this->{$this->idProperty()}=$id;
-            $response=$this->query('resource');
+            $response=$this->query('resource','GET',$params);
             return $this->populateRecord($response->getData());
     }
     
