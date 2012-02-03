@@ -940,12 +940,13 @@ abstract class EActiveResource extends CModel
     
     /**
      * Sends a direct GET request to the resource without an id. Should return all resources
+     * @param array $params Additional query params
      * @return array An array of EActiveResources if they exist. An empty array if none are found (or Exception if request is invalid).
      */
-    public function findAll()
+    public function findAll($params=array())
     {
             Yii::trace(get_class($this).'.findAll()','ext.EActiveResource');
-            $response=$this->query('collection');
+            $response=$this->query('collection','GET',$params);
             return $this->populateRecords($response->getData());
     }
 
