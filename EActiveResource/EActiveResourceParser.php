@@ -48,7 +48,10 @@ class EActiveResourceParser
             unset($attributes,$value);//Remove existing values, or there will be trouble
 
             //This command will extract these variables into the foreach scope
-            // tag(string), type(string), level(int), attributes(array).
+            /* @var string $tag */
+            /* @var string $type */
+            /* @var int $level */
+            /* @var array $attributes */
             extract($data);//We could use the array by itself, but this cooler.
 
             $result = array();
@@ -143,13 +146,50 @@ class EActiveResourceParser
     /**
      * A placeholder to allow conversions of PHP arrays to XML
      * @param array $data The data to be converted
+     * @param string $rootNodeName The name of the root XML node, defaults to "response"
+     * @param string $itemNodeName The name of the XML node to use when converting a 0 based array to XML, defautls to "item"
      * @return string The converted XML string
      */
-    public static function arrayToXML($data)
+    public static function arrayToXML($data, $rootNodeName = "response", $itemNodeName = "item")
     {
-      throw new EActiveResourceException('Converting XML data is not yet implemented', 500);
-
+        $writer = new XMLWriter();
+        $writer->openMemory();
+        $writer->startDocument('1.0', Yii::app()->charset);
+        $writer->startElement($rootNodeName);
+        if (!is_array($data) && !is_object($data)) {
+            $data = array($data);
+        }
+        self::encodeXMLElementInternal($writer,$data, $rootNodeName);
+        $writer->endElement();
+        return $writer->outputMemory(true);
     }
+
+    /**
+     * Encodes an array or object to XML.
+     * This is an internal function used by {@link arrayToXML()}, do not call it directly
+     * @param XMLWriter $writer the XML writer
+     * @param array|object $data the data to encode to XML
+     * @param string $itemNodeName The name of the XML node to use when converting a 0 based array to XML
+     */
+    private static function encodeXMLElementInternal(XMLWriter $writer, $data, $itemNodeName) {
+        foreach($data as $key => $value) {
+            if (is_numeric($key)) {
+                $key = $itemNodeName;
+            }
+            elseif (!preg_match("/^_?(?!(xml|[_\d\W]))([\w.-]+)$/",$key)) {
+                $key = preg_replace("/[^A-Za-z0-9\.\-$]/","_",$key);
+            }
+            if (is_array($value) || is_object($value)) {
+                $writer->startElement($key);
+                self::encodeXMLElementInternal($writer,$value,$itemNodeName);
+                $writer->endElement();
+            }
+            else {
+                $writer->writeElement($key,$value);
+            }
+        }
+    }
+
 
 ////////JSON
 
