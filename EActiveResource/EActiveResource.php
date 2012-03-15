@@ -940,13 +940,12 @@ abstract class EActiveResource extends CModel
     
     /**
      * Sends a direct GET request to the resource without an id. Should return all resources
-     * @param array $params Additional query params
      * @return array An array of EActiveResources if they exist. An empty array if none are found (or Exception if request is invalid).
      */
-    public function findAll($params=array())
+    public function findAll()
     {
             Yii::trace(get_class($this).'.findAll()','ext.EActiveResource');
-            $response=$this->query('collection','GET',$params);
+            $response=$this->query('collection');
             return $this->populateRecords($response->getData());
     }
 
@@ -987,9 +986,9 @@ abstract class EActiveResource extends CModel
      */
     public function populateRecord($attributes,$callAfterFind=true)
     {
-        if($this->getContainer())
-            $attributes=$this->extractViaPath($attributes,$this->getContainer());
-        
+        if(is_array($attributes) && isset($attributes[$this->getContainer()]))
+                $attributes=$this->extractDataFromResponse($attributes);
+
         if ($attributes!==false && is_array($attributes))
         {
                 $resource=$this->instantiate($attributes);
@@ -1022,9 +1021,9 @@ abstract class EActiveResource extends CModel
      */
     public function populateRecords($data,$callAfterFind=true,$index=null)
     {
-            if($this->getMultiContainer())
-                $data=$this->extractViaPath($data,$this->getMultiContainer());
-                    
+            if(isset($data[$this->getMultiContainer()]))
+                return $this->populateRecords($data[$this->getMultiContainer()],$callAfterFind,$index);
+            
             $resources=array();
                         
             foreach($data as $attributes)
@@ -1040,29 +1039,30 @@ abstract class EActiveResource extends CModel
 
             return $resources;
     }
-    
+
     /**
-     * Used to extract data from an array via a specified path. Internally used by populateRecords/populateRecord
-     * @param array $data The data array to be searched through
-     * @param string $path
-     * @return mixed The result
+     * This method extracts a subarray within an response that contains a field that is recognized as container field
+     * (as specified within the resource configuration). This is internallyused by populateRecord()
+     * @param array $array The array containing the data
+     * @return array The array only containing the relevant fields.
      */
-    public function extractViaPath($data, $path)
+    protected function extractDataFromResponse($array)
     {
-        $path = explode("/", $path);
-
-        for ($x=0; ($x < count($path)); $x++){
-
-            $key = $path[$x];
-
-            if (isset($data[$key])){
-                $data = $data[$key];
-            }        
-        }
-
-        return $data;
+            if (is_array($array))
+            {
+                if (isset($array[$this->getContainer()]))
+                        return $array[$this->getContainer()];
+                foreach ($array as $item)
+                {
+                    $return = $this->extractDataFromResponse($item);
+                    if (!is_null($return))
+                        return $return;
+                }
+            }
+            else
+                return $array;
     }
-    
+
     /**
      * Send a GET request to this resource according to the supplied route (which has to be defined in routes())
      * @param string $route The route used for this request
