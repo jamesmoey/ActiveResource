@@ -158,7 +158,7 @@ class EActiveResourceRequest
          */
         public function setTimeOut($timeout)
         {
-            $this->_timeout($timeout);
+            $this->_timeout=$timeout;
         }
         
         /**
