@@ -87,7 +87,7 @@ class EActiveResourceConnection extends CApplicationComponent
         //AUTH STUFF
         if(isset($this->auth))
         {
-            $request->setHttpLogin($auth['username'], $auth['password'], $auth['type']);
+            $request->setHttpLogin($this->auth['username'], $this->auth['password'], $this->auth['type']);
         }
         
         //SSL STUFF
@@ -139,13 +139,13 @@ class EActiveResourceConnection extends CApplicationComponent
         //AUTH STUFF
         if(isset($this->auth))
         {
-            $request->setHttpLogin($auth['username'], $auth['password'], $auth['type']);
+            $request->setHttpLogin($this->auth['username'], $this->auth['password'], $this->auth['type']);
         }
         
         //SSL STUFF
         if(isset($this->ssl))
         {
-            $request->setSSL($ssl['verifyPeer'], $ssl['verifyHost'], $ssl['pathToCert']);
+            $request->setSSL($this->ssl['verifyPeer'], $this->ssl['verifyHost'], $this->ssl['pathToCert']);
         }
         
         $response=$request->run();
