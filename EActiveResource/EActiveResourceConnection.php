@@ -24,6 +24,38 @@ class EActiveResourceConnection extends CApplicationComponent
     public $queryCachingCount=0;
     public $queryCacheID='cache';
     
+    private $_ch; //the curl handle used for reusable connections
+    
+    /**
+     * Initialize the extension
+     * check to see if CURL is enabled and the format used is a valid one
+     */
+    public function init()
+    {
+        if(!function_exists('curl_init') )
+            throw new EActiveResourceRequestException_Curl(Yii::t('EActiveResource', 'You must have PHP curl enabled in order to use this extension.') );
+
+        $this->connect();
+    }
+    
+    public function __sleep()
+    {
+        $this->disconnect();
+        return array_keys(get_object_vars($this));
+    }
+    
+    protected function connect()
+    {
+        if(!isset($this->_ch))
+            $this->_ch=curl_init();
+    }
+    
+    protected function disconnect()
+    {
+        if(!isset($this->_ch))
+            $this->_ch->close();
+    }
+    
     /**
      * Used for caching responses
      * @param integer $duration The caching duration in seconds
@@ -48,13 +80,14 @@ class EActiveResourceConnection extends CApplicationComponent
     public function query(EActiveResourceRequest $request)
     {
         //set connection component specific options
+        $request->setCurlHandle($this->_ch);
         $request->setContentType($this->contentType);
         $request->setAcceptType($this->acceptType);
         
         //AUTH STUFF
         if(isset($this->auth))
         {
-            $request->setHttpLogin($auth['username'], $auth['password'], $auth['type']);
+            $request->setHttpLogin($this->auth['username'], $this->auth['password'], $this->auth['type']);
         }
         
         //SSL STUFF
@@ -99,19 +132,20 @@ class EActiveResourceConnection extends CApplicationComponent
     public function execute(EActiveResourceRequest $request)
     {
         //set connection component specific options
+        $request->setCurlHandle($this->_ch);
         $request->setContentType($this->contentType);
         $request->setAcceptType($this->acceptType);
         
         //AUTH STUFF
         if(isset($this->auth))
         {
-            $request->setHttpLogin($auth['username'], $auth['password'], $auth['type']);
+            $request->setHttpLogin($this->auth['username'], $this->auth['password'], $this->auth['type']);
         }
         
         //SSL STUFF
         if(isset($this->ssl))
         {
-            $request->setSSL($ssl['verifyPeer'], $ssl['verifyHost'], $ssl['pathToCert']);
+            $request->setSSL($this->ssl['verifyPeer'], $this->ssl['verifyHost'], $this->ssl['pathToCert']);
         }
         
         $response=$request->run();

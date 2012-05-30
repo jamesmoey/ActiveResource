@@ -52,23 +52,11 @@ class EActiveResourceRequest
         const METHOD_POST   = 'POST';
         const METHOD_PUT    = 'PUT';
         const METHOD_DELETE = 'DELETE';
-
-
-        public function __construct() {
-            $this->init();
-        }
-        
-	/**
-	 * Initialize the extension
-	 * check to see if CURL is enabled and the format used is a valid one
-	 */
-	public function init()
+    
+        public function setCurlHandle($ch)
         {
-            if( !function_exists('curl_init') )
-                throw new EActiveResourceRequestException_Curl(Yii::t('EActiveResource', 'You must have PHP curl enabled in order to use this extension.') );
-
-            $this->ch=curl_init();
-	}
+            $this->ch=$ch;
+        }
                 
          /**
         * Setter
@@ -159,7 +147,7 @@ class EActiveResourceRequest
          */
         public function setTimeOut($timeout)
         {
-            $this->_timeout($timeout);
+            $this->_timeout=$timeout;
         }
         
         /**
@@ -420,6 +408,9 @@ class EActiveResourceRequest
          */
 	public function run()
         {            
+                //if($this->ch===null)
+                    //$this->setCurlHandle(curl_init());
+
                 if(is_null($this->getUri()))
                     throw new EActiveResourceRequestException_Curl(Yii::t('EActiveResource', 'No uri set') );
                                                                 
@@ -462,9 +453,7 @@ class EActiveResourceRequest
                 $formattedResponse=$this->getFormattedResponse($this->_response);
                 
                 $response=new EActiveResourceResponse($formattedResponse,$this->_info,$this->_headerString,$this->checkErrors());
-
-                curl_close($this->ch);
-                
+                                                
                 return $response;
       }
       
