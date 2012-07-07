@@ -99,7 +99,7 @@ class EActiveResourceRequest
         public function setProxy($url,$port = 80)
         {
             $this->setOption(CURLOPT_HTTPPROXYTUNNEL, TRUE);
-            $this->setOption(CURLOPT_PROXY, $uri.':'.$port);
+            $this->setOption(CURLOPT_PROXY, $url.':'.$port);
 	}
         
         public function setApiKey($key, $name = 'X-API-KEY')
@@ -170,7 +170,7 @@ class EActiveResourceRequest
             
             $customHeader=$this->getCustomHeader();
             if(!empty($customHeader))
-                return $customHeader;
+                return CMap::mergeArray($this->getStandardHeader(),$this->_headers, $customHeader);
             else
                 return CMap::mergeArray($this->getStandardHeader(),$this->_headers);
         }
@@ -290,6 +290,13 @@ class EActiveResourceRequest
                     case self::APPLICATION_XML:
                         $formattedData=EActiveResourceParser::arrayToXML($this->getData());
                         break;
+                    case self::APPLICATION_FORM_URL_ENCODED:
+                        if (is_array($this->getData())) {
+                            $formattedData=http_build_query($this->getData());
+                        } else {
+                            $formattedData=$this->getData();
+                        }
+                        break;
                     default:
                         throw new CException('Content Type '.$this->getContentType().' not implemented!');
                 }
@@ -370,6 +377,7 @@ class EActiveResourceRequest
          */
         public function setContentType($contentType)
         {
+            if (empty($this->_contentType))
             $this->_contentType=$contentType;
         }
         
@@ -389,6 +397,7 @@ class EActiveResourceRequest
          */
         public function setAcceptType($acceptType)
         {
+            if (empty($this->_acceptType))
             $this->_acceptType=$acceptType;
         }
         

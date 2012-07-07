@@ -1000,7 +1000,7 @@ abstract class EActiveResource extends CModel
                     if(property_exists($resource,$name))
                         $resource->$name=$value;
                     else if((isset($this->getMetaData()->properties[$name])))
-                        $resource->_attributes[$name]=$value;
+                        $resource->_attributes[$name] = $this->getMetaData()->properties[$name]->typecast($value);
                 }
                 $resource->attachBehaviors($resource->behaviors());
                 if($callAfterFind)
@@ -1128,12 +1128,9 @@ abstract class EActiveResource extends CModel
         if(!empty($params))
             $uri=$uri.'?'.http_build_query($params);
                         
-        $request=new EActiveResourceRequest;
-        $request->setUri($uri);
-        $request->setMethod($method);
-        $request->setData($data);
-        
-        return $this->getConnection()->execute($request); 
+        return $this->getConnection()->execute(
+          $this->prepareRequest($uri, $method, $data)
+        );
     }
     
     /**
@@ -1149,16 +1146,20 @@ abstract class EActiveResource extends CModel
     {
         $this->beforeFind();
         $uri=$this->buildUri($route);
-        
-        if(!empty($params))
-            $uri=$uri.'?'.http_build_query($params);
-                        
+        return $this->sendRequest($uri,$method,$params,$data);
+    }
+
+    /**
+     * Create and prepare a EActiveResourceRequest
+     *
+     * @return EActiveResourceRequest
+     */
+    protected function prepareRequest($uri, $method, $data) {
         $request=new EActiveResourceRequest;
         $request->setUri($uri);
         $request->setMethod($method);
         $request->setData($data);
-        
-        return $this->getConnection()->query($request);
+        return $request;
     }
         
 }

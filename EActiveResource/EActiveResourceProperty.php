@@ -82,7 +82,27 @@ class EActiveResourceProperty
                         case 'integer': return (integer)$value;
                         case 'boolean': return (boolean)$value;
                         case 'double': return (double)$value;
-                        default: return $value;
+                        case 'datetime': return new DateTime($value);
+                        default:
+                                if (@class_exists($this->type)) {
+                                        if (isset($value[0])) {
+                                                $instances = array();
+                                                foreach ($value as $tmp) {
+                                                        $instance = new $this->type();
+                                                        foreach ($tmp as $f=>$v) {
+                                                                $instance->$f = $v;
+                                                        }
+                                                        $instances[] = $instance;
+                                                }
+                                                return $instances;
+                                        } else {
+                                                $instance = new $this->type();
+                                                foreach ($value as $f=>$v) {
+                                                        $instance->$f = $v;
+                                                }
+                                                return $instance;
+                                        }
+                                } else return $value;
                 }
         }
 }
